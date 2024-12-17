@@ -4,25 +4,26 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.net.URLConnection;
+import java.net.*;
 import java.util.*;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
+/**
+ * 接收關鍵字字串 (空白分隔)，向Google搜尋並取得前50筆結果 (title -> url)。
+ */
 public class GoogleQuery {
-    public String searchKeyword;
-    public String url;
-    public String content;
+    private String queryKeywords;
+    private String url;
+    private String content;
 
-    public GoogleQuery(String searchKeyword) {
-        this.searchKeyword = searchKeyword;
+    public GoogleQuery(String queryKeywords) {
+        this.queryKeywords = queryKeywords;
         try {
-            String encodeKeyword = java.net.URLEncoder.encode(searchKeyword, "utf-8");
-            this.url = "https://www.google.com/search?q=" + encodeKeyword + "&oe=utf8&num=20";
+            String encodeKeyword = java.net.URLEncoder.encode(queryKeywords, "utf-8");
+            this.url = "https://www.google.com/search?q=" + encodeKeyword + "&oe=utf8&num=50";
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
@@ -91,30 +92,6 @@ public class GoogleQuery {
                 // Ignore invalid elements
             }
         }
-
-        return sortResults(resultMap);
+        return resultMap; // 不排序，直接返回
     }
-
-    private Map<String, String> sortResults(Map<String, String> unsortedMap) {
-        List<Map.Entry<String, String>> list = new ArrayList<>(unsortedMap.entrySet());
-
-        int n = list.size();
-        for (int i = 0; i < n - 1; i++) {
-            for (int j = 0; j < n - i - 1; j++) {
-                int length1 = list.get(j).getKey().length();
-                int length2 = list.get(j + 1).getKey().length();
-
-                if (length1 < length2) {
-                    Collections.swap(list, j, j + 1);
-                }
-            }
-        }
-
-        Map<String, String> sortedMap = new LinkedHashMap<>();
-        for (Map.Entry<String, String> entry : list) {
-            sortedMap.put(entry.getKey(), entry.getValue());
-        }
-    
-        return sortedMap;
-    }    
 }
