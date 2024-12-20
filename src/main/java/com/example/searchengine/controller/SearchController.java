@@ -34,13 +34,14 @@ public class SearchController {
             // 第一步：抽取關鍵字與權重
             // TODO: 待完成 keywordExtractionEngine.java, KeywordExtractionResult.java
             // 先利用 Google 翻譯 API 把使用者輸入轉成繁體中文
-            // 會先把自然語言 (若有) 利用 CKIP 切成 Keywords 形式 (空格分開)
-            // 利用分類模型為每個關鍵字分類到 “城市“、”夜市名“、”食物類型“、”食物名“ 任一個，給上 weights 返回 List & String
+            // 會先把自然語言 (若有) 利用 CKIP 切成 Keywords 形式 (空格分開) -> 要設定條件才觸發，在使用者已經用關鍵字形式輸入時就不觸發
+            // 利用分類模型 (準確率無所謂，只影響 Weight) 為每個關鍵字分類到 “城市“、”夜市名“、”食物類型“、”食物名“ 任一個，給上 weights 返回 List & String
             // 對於被分到 “城市“、”夜市名“ 這兩類的關鍵字，要另用 2 個表來比對相似度，取出表中相似度 (Voyage Re-ranker) 最高的，替換掉原來的關鍵字
-            // 再把關鍵字做 Expand (利用同義詞方式為關鍵字增廣，增加搜尋廣度)
+            // -> 這步要驗證清楚準確率，或是對於中文輸入就跳過這步，不然 DEMO 時匹配到另一個夜市，就徹底出包了
+            // -> 或是保留原本關鍵字和 Mapping 後的一起 Google Search？
+            // 再把關鍵字做 Expand (利用同義詞方式為關鍵字增廣，增加搜尋廣度) (Optional, 真的有大幅幫助再做)
             // -> 這步只在 keywordList 儲存，不放入 combinedKeywords 在 google search 使用，怕影響語意搜尋成效
             // -> Expand Method: https://blog.csdn.net/stay_foolish12/article/details/113108919
-            // -> 要實際測試後，如果真的有幫助再加入
             KeywordExtractionResult extractionResult = keywordExtractionEngine.extractKeywords(query);
             String combinedKeywords = extractionResult.getCombinedKeywords();
             List<Keyword> keywordList = extractionResult.getKeywordList();
@@ -81,6 +82,7 @@ public class SearchController {
             // 4. knowledge graph
 
             // 傳給前端
+            // TODO: 還需要回傳 Top 文字雲 Keywords (TF-IDF, 抓 Google 提供的, etc.)
             Map<String, String> sortedResults = new LinkedHashMap<>();
             for (RootPageResult rpr : rootPageResults) {
                 sortedResults.put(rpr.getTitle(), rpr.getUrl());
