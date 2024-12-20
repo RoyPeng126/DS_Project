@@ -61,9 +61,11 @@ public class SearchController {
 
                 // 抓取網頁HTML
                 String htmlContent = fetchHtmlContent(pageUrl);
+                
+                int depth = 2; // 設定遞迴深度 (暫定)
 
                 // 取得此頁(及其子頁)的 Page 結構
-                Page rootPage = keywordCounterEngine.getPageStructure(htmlContent, keywordList, title, pageUrl);
+                Page rootPage = keywordCounterEngine.getPageStructure(htmlContent, keywordList, title, pageUrl, depth);
 
                 // 計算整棵樹的總分數(包括子頁、子子頁...)
                 int aggregatedScore = computeAggregatedScore(rootPage);
