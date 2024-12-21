@@ -36,7 +36,7 @@ public class KeywordCounterEngine {
      * @return 樹的根節點 (Page 物件)
      */
     public Page getPageStructure(String htmlContent, List<Keyword> keywords, String title, String url, int depth) {
-        if (depth == 0) {
+        if (depth == 0||htmlContent.isEmpty()) {
             return null; // 遞迴停止條件
         }
 
