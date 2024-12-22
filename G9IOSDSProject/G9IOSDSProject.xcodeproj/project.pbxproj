@@ -27,6 +27,7 @@
 		EC49A8682D17E67D00B5CA6C /* G9IOSDSProject.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = G9IOSDSProject.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		EC49A8782D17E68600B5CA6C /* G9IOSDSProjectTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = G9IOSDSProjectTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		EC49A8822D17E68600B5CA6C /* G9IOSDSProjectUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = G9IOSDSProjectUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		EC49A8972D17E76000B5CA6C /* SearchViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchViewController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -75,6 +76,7 @@
 		EC49A85F2D17E67D00B5CA6C = {
 			isa = PBXGroup;
 			children = (
+				EC49A8962D17E73600B5CA6C /* Controllers */,
 				EC49A86A2D17E67D00B5CA6C /* G9IOSDSProject */,
 				EC49A87B2D17E68600B5CA6C /* G9IOSDSProjectTests */,
 				EC49A8852D17E68600B5CA6C /* G9IOSDSProjectUITests */,
@@ -90,6 +92,14 @@
 				EC49A8822D17E68600B5CA6C /* G9IOSDSProjectUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		EC49A8962D17E73600B5CA6C /* Controllers */ = {
+			isa = PBXGroup;
+			children = (
+				EC49A8972D17E76000B5CA6C /* SearchViewController.swift */,
+			);
+			path = Controllers;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
