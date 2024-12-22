@@ -2,11 +2,12 @@ package com.example.searchengine.engine;
 
 import com.example.searchengine.model.Keyword;
 import com.example.searchengine.model.Page;
-
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -19,6 +20,7 @@ import java.util.regex.Pattern;
 
 public class KeywordCounterEngine {
 
+    private static final Logger logger = LoggerFactory.getLogger(KeywordCounterEngine.class);
     private Set<String> visitedUrls = new HashSet<>();
 
     public KeywordCounterEngine() {
@@ -36,7 +38,7 @@ public class KeywordCounterEngine {
      * @return 樹的根節點 (Page 物件)
      */
     public Page getPageStructure(String htmlContent, List<Keyword> keywords, String title, String url, int depth) {
-        if (depth == 0||htmlContent.isEmpty()) {
+        if (depth == 0 || htmlContent.isEmpty()) {
             return null; // 遞迴停止條件
         }
 
@@ -69,8 +71,7 @@ public class KeywordCounterEngine {
                         currentPage.addChild(childPage); // 將子頁面加入樹中
                     }
                 } catch (IOException e) {
-                    System.err.println("Failed to fetch child page: " + childUrl);
-                    e.printStackTrace();
+                    logger.error("Failed to fetch child page: {}", childUrl, e);
                 }
             }
         }
@@ -83,17 +84,15 @@ public class KeywordCounterEngine {
      */
     private Map<Keyword, Integer> analyzeOccurrences(String htmlContent, List<Keyword> keywords) {
         Map<Keyword, Integer> occurrences = new HashMap<>();
-        for (Keyword keyword : keywords) {
-            occurrences.put(keyword, 0);
-        }
-
         Document doc = Jsoup.parse(htmlContent);
-        String textContent = doc.body().text();
+        String textContent = doc.body() != null ? doc.body().text() : "";
 
         for (Keyword keyword : keywords) {
             String word = keyword.getWord();
             int count = countOccurrences(textContent, word);
-            occurrences.put(keyword, occurrences.get(keyword) + count);
+            if (count > 0) {
+                occurrences.put(keyword, count);
+            }
         }
         return occurrences;
     }
@@ -129,13 +128,16 @@ public class KeywordCounterEngine {
      * 檢查 URL 是否有效。
      */
     private boolean isValidUrl(String urlString) {
+        if (!urlString.startsWith("http://") && !urlString.startsWith("https://")) {
+            return false;
+        }
         try {
             URL url = new URL(urlString);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("HEAD");
             conn.setConnectTimeout(3000);
             conn.connect();
-            return (conn.getResponseCode() == HttpURLConnection.HTTP_OK);
+            return conn.getResponseCode() == HttpURLConnection.HTTP_OK;
         } catch (IOException e) {
             return false;
         }
