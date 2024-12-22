@@ -33,7 +33,6 @@
 		EC49A89C2D17E7A400B5CA6C /* Exceptions for "G9IOSDSProject" folder in "G9IOSDSProject" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				Controllers/SearchViewController.swift,
 				Services/GoogleQueryService.swift,
 			);
 			target = EC49A8672D17E67D00B5CA6C /* G9IOSDSProject */;

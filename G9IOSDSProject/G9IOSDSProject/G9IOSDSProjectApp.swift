@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UIKit // 必須導入 UIKit，否則找不到 ViewController
 
 @main
 struct G9IOSDSProjectApp: App {
@@ -21,5 +22,7 @@ struct SearchViewControllerWrapper: UIViewControllerRepresentable {
         return SearchViewController()
     }
 
-    func updateUIViewController(_ uiViewController: SearchViewController, context: Context) {}
+    func updateUIViewController(_ uiViewController: SearchViewController, context: Context) {
+        // 不需要額外操作
+    }
 }
