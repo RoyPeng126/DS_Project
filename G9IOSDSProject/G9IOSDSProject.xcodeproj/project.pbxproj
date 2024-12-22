@@ -29,22 +29,9 @@
 		EC49A8822D17E68600B5CA6C /* G9IOSDSProjectUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = G9IOSDSProjectUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
-/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		EC49A89C2D17E7A400B5CA6C /* Exceptions for "G9IOSDSProject" folder in "G9IOSDSProject" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Services/GoogleQueryService.swift,
-			);
-			target = EC49A8672D17E67D00B5CA6C /* G9IOSDSProject */;
-		};
-/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
-
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		EC49A86A2D17E67D00B5CA6C /* G9IOSDSProject */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				EC49A89C2D17E7A400B5CA6C /* Exceptions for "G9IOSDSProject" folder in "G9IOSDSProject" target */,
-			);
 			path = G9IOSDSProject;
 			sourceTree = "<group>";
 		};
