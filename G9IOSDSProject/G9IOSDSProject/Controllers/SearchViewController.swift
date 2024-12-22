@@ -8,8 +8,15 @@ class SearchViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        setupUI()
+        view.backgroundColor = .white
+
+        let testLabel = UILabel()
+        testLabel.text = "App Loaded Successfully"
+        testLabel.textAlignment = .center
+        testLabel.frame = view.bounds
+        view.addSubview(testLabel)
     }
+
 
     private func setupUI() {
         view.backgroundColor = .white

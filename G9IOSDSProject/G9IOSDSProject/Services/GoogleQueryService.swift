@@ -27,7 +27,7 @@ class GoogleQueryService {
             ]
 
             DispatchQueue.main.async {
-                completion(.success(mockPages))
+                        completion(.success(mockPages))
             }
         }
     }
