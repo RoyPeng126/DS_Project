@@ -24,6 +24,7 @@ public class VoyageReRanker {
                 "花蓮縣", "臺東縣", "金門縣", "連江縣"
         ));
 
+        // TODO: 補全所有夜市名：https://zh.wikipedia.org/zh-tw/%E8%87%BA%E7%81%A3%E5%A4%9C%E5%B8%82%E5%88%97%E8%A1%A8#%E5%8C%97%E9%83%A8
         keywordLists.put("Night Market Name", Arrays.asList(
                 "八斗子夜市", "碇內夜市", "士林夜市", "饒河夜市", "通化夜市", "逢甲夜市", "六合夜市"
         ));
