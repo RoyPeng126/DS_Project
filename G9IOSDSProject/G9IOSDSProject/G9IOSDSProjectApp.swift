@@ -11,7 +11,15 @@ import SwiftUI
 struct G9IOSDSProjectApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            SearchViewControllerWrapper()
         }
     }
+}
+
+struct SearchViewControllerWrapper: UIViewControllerRepresentable {
+    func makeUIViewController(context: Context) -> SearchViewController {
+        return SearchViewController()
+    }
+
+    func updateUIViewController(_ uiViewController: SearchViewController, context: Context) {}
 }
