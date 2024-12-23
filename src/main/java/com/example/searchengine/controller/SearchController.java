@@ -34,7 +34,7 @@ public class SearchController {
             // 第一步：抽取關鍵字與權重
             // 先利用 Google 翻譯 API 把使用者輸入轉成繁體中文
             // 會先把自然語言 (若有) 利用 CKIP 切成 Keywords 形式 (空格分開) -> 要設定條件才觸發，但凡使用者的輸入內含空格，就不觸發
-            // 利用分類模型 (準確率無所謂，只影響 Weight) 為每個關鍵字分類到 “城市“、”夜市名“、”食物類型“、”食物名“ 任一個，給上 weights 返回 List & String
+            // 利用分類模型 (準確率無所謂，只影響 Weight) 為每個關鍵字分類到 “城市“、”夜市名“、”食物類型“、”食物名“、“其他” 任一個，給上 weights 返回 List & String
             // 對於被分到 “城市“、”夜市名“ 這兩類的關鍵字，要另用 2 個表來比對相似度，取出表中相似度 (Voyage Re-ranker) 最高的，替換掉原來的關鍵字
             KeywordExtractionResult extractionResult = keywordExtractionEngine.extractKeywords(query);
             String combinedKeywords = extractionResult.getCombinedKeywords();
@@ -46,6 +46,7 @@ public class SearchController {
             Map<String, String> initialResults = googleQuery.query();
 
             // 第三步：對每個 result 取得 Page 結構並計算樹狀分數
+            // 已完成
             List<RootPageResult> rootPageResults = new ArrayList<>();
             for (Map.Entry<String, String> entry : initialResults.entrySet()) {
                 String title = entry.getKey();

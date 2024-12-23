@@ -1,11 +1,11 @@
 package com.example.searchengine.model;
 
+import java.io.*;
+import java.nio.file.*;
 import java.util.*;
+import org.apache.commons.csv.*;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.http.ResponseEntity;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
+import org.springframework.http.*;
 
 public class VoyageReRanker {
 
@@ -14,6 +14,7 @@ public class VoyageReRanker {
     public VoyageReRanker() {
         keywordLists = new HashMap<>();
         initializeKeywordLists();
+        loadKeywordsFromCSV("output.csv", "Night Market Name");
     }
 
     private void initializeKeywordLists() {
@@ -23,11 +24,25 @@ public class VoyageReRanker {
                 "高雄市", "臺南市", "嘉義市", "嘉義縣", "屏東縣", "澎湖縣",
                 "花蓮縣", "臺東縣", "金門縣", "連江縣"
         ));
+    }
 
-        // TODO: 補全所有夜市名：https://zh.wikipedia.org/zh-tw/%E8%87%BA%E7%81%A3%E5%A4%9C%E5%B8%82%E5%88%97%E8%A1%A8#%E5%8C%97%E9%83%A8
-        keywordLists.put("Night Market Name", Arrays.asList(
-                "八斗子夜市", "碇內夜市", "士林夜市", "饒河夜市", "通化夜市", "逢甲夜市", "六合夜市"
-        ));
+    private void loadKeywordsFromCSV(String filePath, String category) {
+        try (Reader reader = Files.newBufferedReader(Paths.get(filePath));
+             CSVParser csvParser = new CSVParser(reader, CSVFormat.DEFAULT)) {
+
+            List<String> keywords = new ArrayList<>();
+            for (CSVRecord record : csvParser) {
+                String keyword = record.get(0).trim(); // 取每行的第一列
+                if (!keyword.isEmpty()) {
+                    keywords.add(keyword);
+                }
+            }
+            keywordLists.put(category, keywords);
+            System.out.println("成功加載 " + keywords.size() + " 個關鍵字到類別: " + category);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public String findBestMatch(String input, String category) {

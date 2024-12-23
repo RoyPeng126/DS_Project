@@ -1,12 +1,42 @@
 package com.example.searchengine.model;
 
-import java.util.*;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import okhttp3.*;
+
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class CKIPTransformer {
-    public List<String> tokenize(String input) {
-        // 模擬 CKIP Transformer API，返回分詞結果
-        // Example API: return ApiClient.ckipTokenize(input);
-        // 真實實現應替換為 CKIP 的實際接口
-        return Arrays.asList("分詞結果1", "分詞結果2");
+
+    private static final String API_URL = "http://localhost:5000/extract_keywords";
+    private final OkHttpClient client = new OkHttpClient();
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    public List<String> tokenize(String input) throws IOException {
+        // 使用 HashMap 初始化請求參數
+        Map<String, String> requestBody = new HashMap<>();
+        requestBody.put("text", input);
+
+        // 將 Map 轉換成 JSON 字符串
+        String jsonRequestBody = objectMapper.writeValueAsString(requestBody);
+
+        // 創建請求
+        Request request = new Request.Builder()
+                .url(API_URL)
+                .post(RequestBody.create(jsonRequestBody, MediaType.parse("application/json")))
+                .build();
+
+        // 執行請求並處理響應
+        try (Response response = client.newCall(request).execute()) {
+            if (!response.isSuccessful()) {
+                throw new IOException("Unexpected code " + response);
+            }
+
+            // 解析響應 JSON
+            Map<String, Object> responseMap = objectMapper.readValue(response.body().string(), Map.class);
+            return (List<String>) responseMap.get("keywords");
+        }
     }
 }

@@ -25,7 +25,7 @@ public class KeywordExtractionEngine {
         this.googleTranslateService = googleTranslateService;
     }
 
-    public KeywordExtractionResult extractKeywords(String userInput) {
+    public KeywordExtractionResult extractKeywords(String userInput) throws IOException {
         // 1. 檢查輸入是否非中文並進行翻譯
         boolean translated = false;
         try {
