@@ -90,13 +90,11 @@ public class KeywordExtractionEngine {
                 return 5.0;
             case "Night Market Name":
                 return 10.0;
-            case "Food Type":
-                return 8.0;
             case "Food Name":
                 return 8.0;
             case "Others":
             default:
-                return 0.0;
+                return 4.5;
         }
     }
 
