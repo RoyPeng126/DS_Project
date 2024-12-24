@@ -48,34 +48,37 @@ public class SearchController {
 
             // 第三步：對每個 result 取得 Page 結構並計算樹狀分數
             // TODO: 解開註解會有 Error
-            // List<RootPageResult> rootPageResults = new ArrayList<>();
-            // for (Map.Entry<String, String> entry : initialResults.entrySet()) {
-            //     String title = entry.getKey();
-            //     String pageUrl = entry.getValue();
+             List<RootPageResult> rootPageResults = new ArrayList<>();
+             for (Map.Entry<String, String> entry : initialResults.entrySet()) {
+                 String title = entry.getKey();
+                 String pageUrl = entry.getValue();
 
-            //     // 抓取網頁HTML
-            //     String htmlContent = fetchHtmlContent(pageUrl);
+                 // 抓取網頁HTML
+                String htmlContent = fetchHtmlContent(pageUrl);
                 
-            //     int depth = 1;
+                int depth = 1;
 
-            //     // 取得此頁(及其子頁)的 Page 結構
-            //     Page rootPage = keywordCounterEngine.getPageStructure(htmlContent, keywordList, title, pageUrl, depth);
+                // 取得此頁(及其子頁)的 Page 結構
+                 Page rootPage = keywordCounterEngine.getPageStructure(htmlContent, keywordList, title, pageUrl, depth);
+                 if (rootPage == null) {
+                   
+                    continue;
+                }
+                 // 計算整棵樹的總分數(包括子頁、子子頁...)
+                 int aggregatedScore = computeAggregatedScore(rootPage);
 
-            //     // 計算整棵樹的總分數(包括子頁、子子頁...)
-            //     int aggregatedScore = computeAggregatedScore(rootPage);
+                rootPageResults.add(new RootPageResult(rootPage.getTitle(), rootPage.getUrl(), aggregatedScore));
+             }
 
-            //     rootPageResults.add(new RootPageResult(rootPage.getTitle(), rootPage.getUrl(), aggregatedScore));
-            // }
+             // 第四步：依最終分數排序(高->低)
+             rootPageResults.sort((r1, r2) -> Integer.compare(r2.getAggregatedScore(), r1.getAggregatedScore()));
 
-            // // 第四步：依最終分數排序(高->低)
-            // rootPageResults.sort((r1, r2) -> Integer.compare(r2.getAggregatedScore(), r1.getAggregatedScore()));
-
-            // // 傳給前端
-            // Map<String, String> sortedResults = new LinkedHashMap<>();
-            // for (RootPageResult rpr : rootPageResults) {
-            //     sortedResults.put(rpr.getTitle(), rpr.getUrl());
-            // }
-            // System.out.println(sortedResults);
+             // 傳給前端
+             Map<String, String> sortedResults = new LinkedHashMap<>();
+             for (RootPageResult rpr : rootPageResults) {
+                 sortedResults.put(rpr.getTitle(), rpr.getUrl());
+             }
+             System.out.println(sortedResults);
             model.addAttribute("results", initialResults);
             model.addAttribute("query", query);
 
@@ -109,12 +112,16 @@ public class SearchController {
      * 計算某個 Page (含子頁) 的總分數：為該 Page 的 score 加上所有子孫頁面的 score。
      */
     private int computeAggregatedScore(Page root) {
+        if (root == null) {
+            return 0;
+        }
         int total = root.getScore();
         for (Page child : root.getChildren()) {
             total += computeAggregatedScore(child);
         }
         return total;
     }
+    
 
     /**
      * 用來儲存 root page 的結果(包含最終聚合分數)的內部類別
