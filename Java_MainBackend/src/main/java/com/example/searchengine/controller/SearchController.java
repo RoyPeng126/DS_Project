@@ -47,7 +47,7 @@ public class SearchController {
             Map<String, String> initialResults = googleQuery.query();
 
             // 第三步：對每個 result 取得 Page 結構並計算樹狀分數
-            // 已完成
+            // TODO: 解開註解會有 Error
             // List<RootPageResult> rootPageResults = new ArrayList<>();
             // for (Map.Entry<String, String> entry : initialResults.entrySet()) {
             //     String title = entry.getKey();
@@ -71,7 +71,6 @@ public class SearchController {
             // rootPageResults.sort((r1, r2) -> Integer.compare(r2.getAggregatedScore(), r1.getAggregatedScore()));
 
             // // 傳給前端
-            // // TODO: 還需要回傳 Top 文字雲 Keywords (TF-IDF, 抓 Google 提供的, etc.)
             // Map<String, String> sortedResults = new LinkedHashMap<>();
             // for (RootPageResult rpr : rootPageResults) {
             //     sortedResults.put(rpr.getTitle(), rpr.getUrl());
@@ -79,6 +78,8 @@ public class SearchController {
             // System.out.println(sortedResults);
             model.addAttribute("results", initialResults);
             model.addAttribute("query", query);
+
+            // TODO (TO Justin): 還需要回傳 Top 文字雲 Keywords (TF-IDF, 抓 Google 提供的, etc.)
 
         } catch (IOException e) {
             e.printStackTrace();
