@@ -76,7 +76,7 @@ public class VoyageReRanker {
      * 回傳「最佳匹配文字 + 分數」。
      */
     public BestMatchResponse getBestMatchWithScore(String input, List<String> candidates) {
-        String apiUrl = "http://127.0.0.1:5000/rerank";
+        String apiUrl = "http://femhv.ddns.net:5000/rerank";
         RestTemplate restTemplate = new RestTemplate();
     
         Map<String, Object> requestBody = new HashMap<>();
