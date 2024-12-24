@@ -30,10 +30,6 @@ public class KeywordCounterEngine {
     private final ExecutorService executorService = Executors.newFixedThreadPool(10); // 降低執行緒數量以減少伺服器壓力
     private final AtomicInteger totalPageCount = new AtomicInteger(0);
     private static final int MAX_TOTAL_PAGES = 10; // 最大處理頁面數量
-    private static final int MAX_INVALID_URLS = 5; // 最大無效 URL 次數
-    private final AtomicInteger invalidUrlCount = new AtomicInteger(0);
-    private final Map<String, Boolean> urlValidityCache = new ConcurrentHashMap<>();
-    private final Set<String> problematicUrls = ConcurrentHashMap.newKeySet(); // 記錄有問題的 URL
 
     public KeywordCounterEngine() {
         // 建構子
@@ -41,74 +37,64 @@ public class KeywordCounterEngine {
 
     public Page getPageStructure(String htmlContent, List<Keyword> keywords, String title, String url, int depth) {
         logger.info("Processing page: {} with depth: {} and total pages processed: {}", url, depth, totalPageCount.get());
-    
-        if (depth <= 0 || htmlContent.isEmpty() || totalPageCount.get() >= MAX_TOTAL_PAGES) {
+
+        if (depth <= 0 || totalPageCount.get() >= MAX_TOTAL_PAGES) {
             logger.info("Stopping recursion for page: {} due to depth: {} or max pages reached: {}", url, depth, totalPageCount.get());
-            return null; // 停止條件
+            return new Page(title, url, 0); // 停止條件，返回默认 Page
         }
-    
+
         totalPageCount.incrementAndGet(); // 計數器增量
-    
-        // 第一步：取得關鍵字出現次數
+
+        // 第一步：抓取 HTML 內容
+        if (htmlContent == null || htmlContent.isEmpty()) {
+            htmlContent = fetchHtmlContent(url);
+        }
+
+        if (htmlContent == null || htmlContent.isEmpty()) {
+            logger.warn("Failed to fetch or process content for URL: {}, assigning score 0", url);
+            return new Page(title, url, 0); // HTML 無法取得，分數設為 0
+        }
+
+        // 第二步：取得關鍵字出現次數
         Map<Keyword, Integer> keywordOccurrences = analyzeOccurrences(htmlContent, keywords);
         logger.debug("Keyword occurrences for page {}: {}", url, keywordOccurrences);
-    
-        // 第二步：計算分數
+
+        // 第三步：計算分數
         int score = calculateScore(keywordOccurrences);
         logger.info("Score for page {}: {}", url, score);
-    
+
         // 建立本頁面的 Page 節點
         Page currentPage = new Page(title, url, score);
-    
+
         // 處理子頁面，限制最多抓取 1 個子頁面
         Document doc = Jsoup.parse(htmlContent);
         Elements links = doc.select("a[href]");
-    
-        List<Future<Page>> futures = new ArrayList<>();
+
         int childrenCount = 0;
         for (Element link : links) {
             if (childrenCount >= 1 || totalPageCount.get() >= MAX_TOTAL_PAGES) break;
-    
+
             String childUrl = link.absUrl("href");
-            if (!isVisited(childUrl) && isValidUrlWithRetry(childUrl, 3)) {
+            if (!isVisited(childUrl)) {
                 logger.info("Fetching child page: {}", childUrl);
                 markVisited(childUrl);
                 childrenCount++;
-                futures.add(executorService.submit(() -> {
-                    try {
-                        String childHtmlContent = fetchHtmlContentWithRetry(childUrl, 3);
-                        if (childHtmlContent == null || childHtmlContent.isEmpty()) {
-                            logger.warn("Failed to fetch content for child page: {}", childUrl);
-                            return null;
-                        }
-                        return getPageStructure(childHtmlContent, keywords, link.text(), childUrl, depth - 1);
-                    } catch (Exception e) {
-                        logger.error("Error fetching child page: {}", childUrl, e);
-                        return null;
+                try {
+                    String childHtmlContent = fetchHtmlContent(childUrl);
+                    Page childPage = getPageStructure(childHtmlContent, keywords, link.text(), childUrl, depth - 1);
+                    if (childPage != null) {
+                        currentPage.addChild(childPage);
                     }
-                }));
-            } else {
-                logger.debug("Skipping child page: {} (already visited or invalid)", childUrl);
-            }
-        }
-    
-        for (Future<Page> future : futures) {
-            try {
-                Page childPage = future.get(2, TimeUnit.SECONDS); // 限制等待時間
-                if (childPage != null) {
-                    currentPage.addChild(childPage);
+                } catch (Exception e) {
+                    logger.error("Error processing child page: {}", childUrl, e);
                 }
-            } catch (TimeoutException e) {
-                logger.warn("Child page processing timed out");
-                future.cancel(true);
-            } catch (Exception e) {
-                logger.error("Error processing child page future", e);
+            } else {
+                logger.debug("Skipping child page: {} (already visited)", childUrl);
             }
         }
-    
+
         return currentPage; // 返回樹的根節點
     }
-    
 
     private Map<Keyword, Integer> analyzeOccurrences(String htmlContent, List<Keyword> keywords) {
         Map<Keyword, Integer> occurrences = new HashMap<>();
@@ -146,103 +132,32 @@ public class KeywordCounterEngine {
         return count;
     }
 
-    private boolean isValidUrlWithRetry(String urlString, int retries) {
-        for (int i = 0; i < retries; i++) {
-            try {
-                return isValidUrl(urlString);
-            } catch (Exception e) {
-                logger.warn("Retrying URL validation for: {} (attempt: {})", urlString, i + 1);
-            }
-        }
-        return false;
-    }
-
-    private boolean isValidUrl(String urlString) {
-        if (problematicUrls.contains(urlString)) {
-            logger.warn("Skipping problematic URL: {}", urlString);
-            return false;
-        }
-        if (urlValidityCache.containsKey(urlString)) {
-            return urlValidityCache.get(urlString);
-        }
-        if (urlString.contains("NEWSLETTER") || urlString.endsWith(".pdf")) {
-            logger.warn("Skipping known invalid URL: {}", urlString);
-            urlValidityCache.put(urlString, false);
-            return false;
-        }
-        try {
-            URL url = new URL(urlString);
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("HEAD");
-            conn.setConnectTimeout(1000);
-            conn.connect();
-            boolean isValid = conn.getResponseCode() == HttpURLConnection.HTTP_OK;
-            urlValidityCache.put(urlString, isValid);
-            return isValid;
-        } catch (IOException e) {
-            int currentInvalid = invalidUrlCount.incrementAndGet();
-            if (currentInvalid >= MAX_INVALID_URLS) {
-                logger.error("Exceeded maximum invalid URL attempts: {}, stopping execution", MAX_INVALID_URLS);
-                shutdown();
-                throw new RuntimeException("Too many invalid URLs, stopping execution.");
-            }
-            logger.warn("Invalid URL: {}", urlString);
-            problematicUrls.add(urlString);
-            urlValidityCache.put(urlString, false);
-            return false;
-        }
-    }
-
-    private String fetchHtmlContentWithRetry(String pageUrl, int retries) throws IOException {
-        IOException lastException = null;
-        for (int i = 0; i < retries; i++) {
-            try {
-                return fetchHtmlContent(pageUrl);
-            } catch (IOException e) {
-                lastException = e;
-                logger.warn("Retrying to fetch content for URL: {} (attempt: {})", pageUrl, i + 1);
-                try {
-                Thread.sleep(200);
-            } catch (InterruptedException ex) {
-                Thread.currentThread().interrupt();
-                logger.error("Thread interrupted during sleep", ex);
-            } // 避免過於頻繁的重試
-            }
-        }
-        throw lastException;
-    }
-
-    private String fetchHtmlContent(String pageUrl) throws IOException {
-        if (problematicUrls.contains(pageUrl)) {
-            logger.warn("Skipping problematic URL: {}", pageUrl);
-            throw new IOException("Problematic URL skipped: " + pageUrl);
-        }
-
-        if (htmlCache.containsKey(pageUrl)) {
-            logger.debug("Using cached content for URL: {}", pageUrl);
-            return htmlCache.get(pageUrl); // 使用緩存結果
-        }
-
+    private String fetchHtmlContent(String pageUrl) {
         StringBuilder sb = new StringBuilder();
-        URL u = new URL(pageUrl);
-        HttpURLConnection conn = (HttpURLConnection) u.openConnection();
-        conn.setRequestProperty("User-Agent", "Chrome/107.0.5304.107");
-        conn.setConnectTimeout(3000);
-        conn.setReadTimeout(5000);
+        try {
+            // 检查协议是否存在
+            if (!pageUrl.startsWith("http://") && !pageUrl.startsWith("https://")) {
+                logger.warn("Skipping URL due to missing protocol: {}", pageUrl);
+                return ""; // 返回空内容
+            }
 
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), "UTF-8"))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                sb.append(line).append("\n");
+            URL u = new URL(pageUrl);
+            HttpURLConnection conn = (HttpURLConnection) u.openConnection();
+            conn.setRequestProperty("User-Agent", "Chrome/107.0.5304.107");
+            conn.setConnectTimeout(3000);
+            conn.setReadTimeout(5000);
+
+            try (BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), "UTF-8"))) {
+                String line;
+                while ((line = br.readLine()) != null) {
+                    sb.append(line).append("\n");
+                }
             }
         } catch (IOException e) {
-            problematicUrls.add(pageUrl);
-            logger.error("Failed to fetch content for URL: {}", pageUrl, e);
-            throw e;
+            logger.error("Failed to fetch content for URL: {}, assigning empty content", pageUrl, e);
+            return ""; // 返回空内容
         }
-
         String htmlContent = sb.toString();
-        htmlCache.put(pageUrl, htmlContent); // 緩存 HTML 結果
         logger.debug("Fetched content for URL: {} (length: {})", pageUrl, htmlContent.length());
         return htmlContent;
     }
@@ -257,5 +172,13 @@ public class KeywordCounterEngine {
 
     public void shutdown() {
         executorService.shutdown();
+        try {
+            if (!executorService.awaitTermination(60, TimeUnit.SECONDS)) {
+                executorService.shutdownNow();
+            }
+        } catch (InterruptedException ex) {
+            executorService.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
     }
 }
