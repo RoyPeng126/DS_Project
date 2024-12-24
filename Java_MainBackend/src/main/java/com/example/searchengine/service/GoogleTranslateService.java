@@ -7,9 +7,12 @@ import java.net.URL;
 import java.util.Scanner;
 import org.json.JSONObject;
 
+import org.springframework.stereotype.Component;
+
+@Component
 public class GoogleTranslateService {
 
-    private static final String API_KEY = System.getenv("GOOGLE_TRANSLATE_API_KEY");
+    private static final String API_KEY = System.getenv("GOOGLE_CLOUD_API_KEY");
     private static final String TRANSLATE_URL = "https://translation.googleapis.com/language/translate/v2";
     private static final String DETECT_URL = "https://translation.googleapis.com/language/translate/v2/detect";
 
