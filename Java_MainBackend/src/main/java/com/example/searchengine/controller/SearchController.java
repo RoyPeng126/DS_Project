@@ -42,41 +42,44 @@ public class SearchController {
 
             // 第二步：Google搜尋，取得前 50 筆結果 (title->url)
             // 已完成
+            System.out.println(combinedKeywords);
             GoogleQuery googleQuery = new GoogleQuery(combinedKeywords);
             Map<String, String> initialResults = googleQuery.query();
 
             // 第三步：對每個 result 取得 Page 結構並計算樹狀分數
-            // 已完成
-            List<RootPageResult> rootPageResults = new ArrayList<>();
-            for (Map.Entry<String, String> entry : initialResults.entrySet()) {
-                String title = entry.getKey();
-                String pageUrl = entry.getValue();
+            // TODO: 解開註解會有 Error
+            // List<RootPageResult> rootPageResults = new ArrayList<>();
+            // for (Map.Entry<String, String> entry : initialResults.entrySet()) {
+            //     String title = entry.getKey();
+            //     String pageUrl = entry.getValue();
 
-                // 抓取網頁HTML
-                String htmlContent = fetchHtmlContent(pageUrl);
+            //     // 抓取網頁HTML
+            //     String htmlContent = fetchHtmlContent(pageUrl);
                 
-                int depth = 2;
+            //     int depth = 1;
 
-                // 取得此頁(及其子頁)的 Page 結構
-                Page rootPage = keywordCounterEngine.getPageStructure(htmlContent, keywordList, title, pageUrl, depth);
+            //     // 取得此頁(及其子頁)的 Page 結構
+            //     Page rootPage = keywordCounterEngine.getPageStructure(htmlContent, keywordList, title, pageUrl, depth);
 
-                // 計算整棵樹的總分數(包括子頁、子子頁...)
-                int aggregatedScore = computeAggregatedScore(rootPage);
+            //     // 計算整棵樹的總分數(包括子頁、子子頁...)
+            //     int aggregatedScore = computeAggregatedScore(rootPage);
 
-                rootPageResults.add(new RootPageResult(rootPage.getTitle(), rootPage.getUrl(), aggregatedScore));
-            }
+            //     rootPageResults.add(new RootPageResult(rootPage.getTitle(), rootPage.getUrl(), aggregatedScore));
+            // }
 
-            // 第四步：依最終分數排序(高->低)
-            rootPageResults.sort((r1, r2) -> Integer.compare(r2.getAggregatedScore(), r1.getAggregatedScore()));
+            // // 第四步：依最終分數排序(高->低)
+            // rootPageResults.sort((r1, r2) -> Integer.compare(r2.getAggregatedScore(), r1.getAggregatedScore()));
 
-            // 傳給前端
-            // TODO: 還需要回傳 Top 文字雲 Keywords (TF-IDF, 抓 Google 提供的, etc.)
-            Map<String, String> sortedResults = new LinkedHashMap<>();
-            for (RootPageResult rpr : rootPageResults) {
-                sortedResults.put(rpr.getTitle(), rpr.getUrl());
-            }
-            model.addAttribute("results", sortedResults);
+            // // 傳給前端
+            // Map<String, String> sortedResults = new LinkedHashMap<>();
+            // for (RootPageResult rpr : rootPageResults) {
+            //     sortedResults.put(rpr.getTitle(), rpr.getUrl());
+            // }
+            // System.out.println(sortedResults);
+            model.addAttribute("results", initialResults);
             model.addAttribute("query", query);
+
+            // TODO (TO Justin): 還需要回傳 Top 文字雲 Keywords (TF-IDF, 抓 Google 提供的, etc.)
 
         } catch (IOException e) {
             e.printStackTrace();

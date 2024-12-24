@@ -8,9 +8,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.stereotype.Component;
+
+@Component
 public class CKIPTransformer {
 
-    private static final String API_URL = "http://localhost:5000/extract_keywords";
+    private static final String API_URL = "http://127.0.0.1:5000/extract_keywords";
     private final OkHttpClient client = new OkHttpClient();
     private final ObjectMapper objectMapper = new ObjectMapper();
 

@@ -43,13 +43,17 @@ def silent_call_ckip_v2(question):
 
 def rerank_with_voyage(query, documents, api_key):
     vo = voyageai.Client(api_key=api_key)
-    subjective_list = [doc['subjective'] for doc in documents]
-    reranking = vo.rerank(query, subjective_list, model='rerank-2', top_k=20)
 
-    sorted_indices = [result.index for result in reranking.results]
-    top_documents = [documents[i] for i in sorted_indices]
+    # 調用 VoyageAI API 進行重排序
+    reranking = vo.rerank(query, documents, model='rerank-2', top_k=20)
 
-    return top_documents
+    # 獲取排序結果
+    ranked_documents_with_scores = [
+        {"document": result.document, "score": result.relevance_score}
+        for result in reranking.results
+    ]
+
+    return ranked_documents_with_scores
 
 @app.route('/extract_keywords', methods=['POST'])
 def extract_keywords():
@@ -76,8 +80,8 @@ def rerank():
     documents = data['documents']
 
     try:
-        ranked_documents = rerank_with_voyage(query, documents, voyage_api_key)
-        return jsonify({"ranked_documents": ranked_documents})
+        ranked_documents_with_scores = rerank_with_voyage(query, documents, voyage_api_key)
+        return jsonify({"ranked_documents": ranked_documents_with_scores})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
