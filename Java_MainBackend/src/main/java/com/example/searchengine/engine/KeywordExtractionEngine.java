@@ -121,13 +121,13 @@ public class KeywordExtractionEngine {
     private double getCategoryWeight(String category) {
         switch (category) {
             case "County/City":
-                return 5.0;
+                return 3.0;
             case "Night Market Name":
-                return 10.0;
+                return 5.0;
             case "Food Name":
-                return 8.0;
+                return 15.0;
             default:
-                return 4.5; // 其它類型預設 4.5
+                return 15.0;
         }
     }
 }

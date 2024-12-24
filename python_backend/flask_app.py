@@ -5,6 +5,8 @@ import os
 import sys
 import voyageai
 
+from test_fetch import fetch_google_result_text
+
 # Initialize Flask app
 app = Flask(__name__)
 
@@ -54,6 +56,20 @@ def rerank_with_voyage(query, documents, api_key):
     ]
 
     return ranked_documents_with_scores
+
+@app.route('/fetch', methods=['POST'])
+def fetch_google():
+    data = request.get_json()
+    if not data or 'text' not in data:
+        return jsonify({"error": "Missing 'text' in request body."}), 400
+
+    question = data['text']
+
+    try:
+        keywords = fetch_google_result_text(question)
+        return jsonify({"keywords": keywords})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/extract_keywords', methods=['POST'])
 def extract_keywords():

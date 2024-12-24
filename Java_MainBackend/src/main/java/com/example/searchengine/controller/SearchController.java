@@ -16,12 +16,26 @@ import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 @Controller
 public class SearchController {
 
     private final KeywordExtractionEngine keywordExtractionEngine;
     private final KeywordCounterEngine keywordCounterEngine;
+
+    private final Map<String, String> htmlCache = new ConcurrentHashMap<>();
+
+    private boolean isDownloadLink(String url) {
+        String lower = url.toLowerCase();
+        return lower.endsWith(".pdf") 
+            || lower.endsWith(".zip")
+            || lower.contains("download.ashx")
+            || lower.contains("/download/");
+    }
 
     public SearchController(KeywordExtractionEngine keywordExtractionEngine, KeywordCounterEngine keywordCounterEngine) {
         this.keywordExtractionEngine = keywordExtractionEngine;
@@ -31,56 +45,92 @@ public class SearchController {
     @GetMapping("/search")
     public String search(@RequestParam String query, Model model) {
         try {
-            // 第一步：抽取關鍵字與權重
-            // 先利用 Google 翻譯 API 把使用者輸入轉成繁體中文
-            // 會先把自然語言 (若有) 利用 CKIP 切成 Keywords 形式 (空格分開) -> 要設定條件才觸發，但凡使用者的輸入內含空格，就不觸發
-            // 利用分類模型 (準確率無所謂，只影響 Weight) 為每個關鍵字分類到 “城市“、”夜市名“、”食物類型“、”食物名“、“其他” 任一個，給上 weights 返回 List & String
-            // 對於被分到 “城市“、”夜市名“ 這兩類的關鍵字，要另用 2 個表來比對相似度，取出表中相似度 (Voyage Re-ranker) 最高的，替換掉原來的關鍵字
+            // 第一步：關鍵字處理 (與原本相同)
             KeywordExtractionResult extractionResult = keywordExtractionEngine.extractKeywords(query);
-            String combinedKeywords = extractionResult.getCombinedKeywords();
             List<Keyword> keywordList = extractionResult.getKeywordList();
+            String combinedKeywords = extractionResult.getCombinedKeywords();
+            String combinedKeywordsgoo = combinedKeywords + "夜市 美食";
 
-            // 第二步：Google搜尋，取得前 50 筆結果 (title->url)
-            // 已完成
-            System.out.println(combinedKeywords);
-            GoogleQuery googleQuery = new GoogleQuery(combinedKeywords);
-            Map<String, String> initialResults = googleQuery.query();
+            // 第二步：Google搜尋，取得前 50 筆結果
+            GoogleQuery googleQuery = new GoogleQuery(combinedKeywordsgoo);
 
-            // 第三步：對每個 result 取得 Page 結構並計算樹狀分數
-            List<RootPageResult> rootPageResults = new ArrayList<>();
+            List<String> resultTexts = googleQuery.fetchGoogleResultText(combinedKeywordsgoo);
+            Map<String, String> initialResults = googleQuery.query(); // title -> url
+
+            // ===★ 新增：多執行緒平行抓取，並把 depth 設為 0★===
+            ExecutorService executor = Executors.newFixedThreadPool(10);
+            List<Future<RootPageResult>> futures = new ArrayList<>();
+
+            // 逐筆提交抓網頁的任務
             for (Map.Entry<String, String> entry : initialResults.entrySet()) {
-                String title = entry.getKey();
-                String pageUrl = entry.getValue();
+                futures.add(executor.submit(() -> {
+                    String result = entry.getKey();
+                    String title = "";
+                    String snippet = "";
+                    String pageUrl = entry.getValue();
+                    String delimiter = "DSPROJECT/x01";
 
-                // 抓取網頁HTML
-                String htmlContent = fetchHtmlContent(pageUrl);
-                
-                int depth = 1;
+                    // 使用 split 方法分割字串
+                    String[] parts = result.split(delimiter);
 
-                // 取得此頁(及其子頁)的 Page 結構
-                Page rootPage = keywordCounterEngine.getPageStructure(htmlContent, keywordList, title, pageUrl, depth);
+                    // 驗證分割後的結果
+                    if (parts.length == 2) {
+                        title = parts[0];
+                        snippet = parts[1];
+                    } else {
+                        System.out.println("格式不正確，無法分割字串");
+                        return new RootPageResult("", pageUrl, 0, "",new HashMap<>());
+                    }
 
-                // 計算整棵樹的總分數(包括子頁、子子頁...)
-                int aggregatedScore = computeAggregatedScore(rootPage);
+                    // (1) 過濾 PDF/下載 連結
+                    if (isDownloadLink(pageUrl)) {
+                        System.out.println("isDownloadLink");
+                        return new RootPageResult(title, pageUrl, 0, snippet,new HashMap<>());
+                    }
 
-                rootPageResults.add(new RootPageResult(rootPage.getTitle(), rootPage.getUrl(), aggregatedScore));
+                    // (2) 抓網頁
+                    String htmlContent = fetchHtmlContent(pageUrl); 
+                    if (htmlContent.isEmpty()) {
+                        // 403 或其它失敗 => 分數=0
+                        System.out.println("htmlContent");
+                        return new RootPageResult(title, pageUrl, 0, snippet, new HashMap<>());
+                    }
+
+                    // (3) depth=0，不再抓子頁
+                    Page rootPage = keywordCounterEngine.getPageStructure(htmlContent, keywordList, title, pageUrl, 0);
+                    int aggregatedScore = rootPage.getScore();
+                    Map<String, String> scoreDetails = rootPage.getScoreDetails(); // 從 Page 取得分數細節
+                    return new RootPageResult(title, pageUrl, aggregatedScore, snippet, scoreDetails);
+                }));
+            }
+
+            // 等所有任務完成
+            executor.shutdown();
+            List<RootPageResult> rootPageResults = new ArrayList<>();
+            for (Future<RootPageResult> f : futures) {
+                RootPageResult rpr = f.get(); // block 直到該任務跑完
+                rootPageResults.add(rpr);
             }
 
             // 第四步：依最終分數排序(高->低)
             rootPageResults.sort((r1, r2) -> Integer.compare(r2.getAggregatedScore(), r1.getAggregatedScore()));
 
-            // 傳給前端
-            Map<String, String> sortedResults = new LinkedHashMap<>();
-            for (RootPageResult rpr : rootPageResults) {
-                sortedResults.put(rpr.getTitle(), rpr.getUrl());
-            }
+            // System.out.println("Sorted Results:");
+            // for (RootPageResult rpr : rootPageResults) {
+            //     System.out.println("Title: " + rpr.getTitle() + ", URL: " + rpr.getUrl() + ", Score: " + rpr.getAggregatedScore());
+            //     System.out.println("Score Details:");
+            //     for (Map.Entry<String, String> entry : rpr.getScoreDetails().entrySet()) {
+            //         System.out.println("    Keyword: " + entry.getKey() + ", Calculation: " + entry.getValue());
+            //     }
+            //     System.out.println();
+            // }
 
-            model.addAttribute("results", sortedResults);
-            model.addAttribute("query", query);
+            System.out.println("RELATED KEYWORDS: " + resultTexts);
+            model.addAttribute("resultTexts", resultTexts);
+            model.addAttribute("results", rootPageResults);
+            model.addAttribute("query", combinedKeywords);
 
-            // TODO (TO Justin): 還需要回傳 Top 文字雲 Keywords (TF-IDF, 抓 Google 提供的, etc.)
-
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
             model.addAttribute("error", "Error fetching results");
         }
@@ -88,57 +138,103 @@ public class SearchController {
     }
 
     /**
-     * 抓取網頁HTML內容
+     * 抓取網頁HTML內容，加入 User-Agent / Referer / 403 處理 + Cache
      */
     private String fetchHtmlContent(String pageUrl) throws IOException {
-        StringBuilder sb = new StringBuilder();
-        URL u = new URL(pageUrl);
-        HttpURLConnection conn = (HttpURLConnection) u.openConnection();
-        conn.setRequestProperty("User-Agent", "Chrome/107.0.5304.107");
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), "UTF-8"))) {
-            String line;
-            while((line = br.readLine()) != null) {
-                sb.append(line).append("\n");
+        // 1. 檢查快取
+        if (htmlCache.containsKey(pageUrl)) {
+            return htmlCache.get(pageUrl); // 直接回傳已抓好的HTML
+        }
+
+        // 2. 協定檢查
+        if (!pageUrl.startsWith("http://") && !pageUrl.startsWith("https://")) {
+            // 無效連結，直接回 ""
+            return "";
+        }
+
+        HttpURLConnection conn = null;
+        try {
+            URL url = new URL(pageUrl);
+            conn = (HttpURLConnection) url.openConnection();
+
+            // 模擬真實瀏覽器 UA
+            conn.setRequestProperty("User-Agent",
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
+                "(KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36");
+            conn.setRequestProperty("Referer", "https://www.google.com");
+
+            conn.setConnectTimeout(2000);
+            conn.setReadTimeout(2000);
+
+            int responseCode = conn.getResponseCode();
+            // 若 403，直接跳過
+            if (responseCode == 403) {
+                return "";
+            }
+            if (responseCode != 200) {
+                return "";
+            }
+
+            // 3. 讀取內容
+            StringBuilder sb = new StringBuilder();
+            try (BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), "UTF-8"))) {
+                String line;
+                while ((line = br.readLine()) != null) {
+                    sb.append(line).append("\n");
+                }
+            }
+
+            // 4. 放入 Cache
+            String htmlContent = sb.toString();
+            htmlCache.put(pageUrl, htmlContent);
+            return htmlContent;
+        } catch (IOException e) {
+            // 失敗直接回 ""
+            return "";
+        } finally {
+            if (conn != null) {
+                conn.disconnect();
             }
         }
-        return sb.toString();
-    }
-
-    /**
-     * 計算某個 Page (含子頁) 的總分數：為該 Page 的 score 加上所有子孫頁面的 score。
-     */
-    private int computeAggregatedScore(Page root) {
-        int total = root.getScore();
-        for (Page child : root.getChildren()) {
-            total += computeAggregatedScore(child);
-        }
-        return total;
-    }
+    } 
 
     /**
      * 用來儲存 root page 的結果(包含最終聚合分數)的內部類別
      */
-    private static class RootPageResult {
-        private final String title;
-        private final String url;
-        private final int aggregatedScore;
-
-        public RootPageResult(String title, String url, int aggregatedScore) {
+    public class RootPageResult {
+        private String title;
+        private String url;
+        private int aggregatedScore;
+        private String snippet; // 新增的字段
+        private Map<String, String> scoreDetails; // 用於記錄分數細節
+    
+        public RootPageResult(String title, String url, int aggregatedScore, String snippet, Map<String, String> scoreDetails) {
             this.title = title;
             this.url = url;
             this.aggregatedScore = aggregatedScore;
+            this.snippet = snippet; // 初始化 snippet
+            this.scoreDetails = scoreDetails;
         }
-
+    
+        // Getter 和 Setter
         public String getTitle() {
             return title;
         }
-
+    
         public String getUrl() {
             return url;
         }
-
+    
         public int getAggregatedScore() {
             return aggregatedScore;
         }
-    }
+
+        public String getSnippet() {
+            return snippet;
+        }
+    
+        public Map<String, String> getScoreDetails() {
+            return scoreDetails;
+        }
+    }    
 }
