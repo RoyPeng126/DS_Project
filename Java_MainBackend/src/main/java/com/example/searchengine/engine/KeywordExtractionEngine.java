@@ -127,7 +127,7 @@ public class KeywordExtractionEngine {
             case "Food Name":
                 return 8.0;
             default:
-                return 4.5; // 其它類型預設 4.5
+                return 4.5;
         }
     }
 }
