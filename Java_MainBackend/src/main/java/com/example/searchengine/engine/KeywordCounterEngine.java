@@ -25,66 +25,83 @@ import java.util.regex.Pattern;
 public class KeywordCounterEngine {
 
     private static final Logger logger = LoggerFactory.getLogger(KeywordCounterEngine.class);
+
+    // 已拜訪過的 URL (防止重複抓)
     private final Set<String> visitedUrls = ConcurrentHashMap.newKeySet();
+    
+    // HTML Cache (避免重複下載同一頁)
     private final Map<String, String> htmlCache = new ConcurrentHashMap<>();
-    private final ExecutorService executorService = Executors.newFixedThreadPool(10); // 降低執行緒數量以減少伺服器壓力
+    
+    // 執行緒池 (如要並行或做子頁抓取任務)
+    private final ExecutorService executorService = Executors.newFixedThreadPool(10);
+
+    // 用於限制全域抓多少頁
     private final AtomicInteger totalPageCount = new AtomicInteger(0);
-    private static final int MAX_TOTAL_PAGES = 50; // 最大處理頁面數量
+    // private static final int MAX_TOTAL_PAGES = 50;
 
     public KeywordCounterEngine() {
-        // 建構子
+        // 預設建構子
     }
 
+    /**
+     * 重新搜尋前，可呼叫此方法清空相關計數與快取。
+     * 避免因為 totalPageCount 與 visitedUrls 累積，導致之後都回傳 0 分。
+     */
+    public void resetEngineState() {
+        visitedUrls.clear();
+        htmlCache.clear();
+        totalPageCount.set(0);
+        logger.info("KeywordCounterEngine state has been reset.");
+    }
+
+    /**
+     * 分析並取得某頁面的結構、關鍵字分數、以及(若 depth > 0)的子頁遞迴。
+     */
     public Page getPageStructure(String htmlContent, List<Keyword> keywords, String title, String url, int depth) {
-        logger.info("Processing page: {} with depth: {} and total pages processed: {}", url, depth, totalPageCount.get());
+        logger.info("Processing page: {} , depth: {}, total pages processed so far: {}", url, depth, totalPageCount.get());
 
-        // 如果 depth < 0 或者總頁數已達上限，就不處理任何東西
-        if (depth < 0 || totalPageCount.get() >= MAX_TOTAL_PAGES) {
-            logger.info("Stopping recursion for page: {} due to depth: {} or max pages reached: {}", url, depth, totalPageCount.get());
-            System.out.printf("Stopping recursion for page: {} due to depth: {} or max pages reached: {}", url, depth, totalPageCount.get());
-            return new Page(title, url, 0, new HashMap<>()); 
-        }
-
-        // 不管 depth 是 0 還是 1、2...，先對「本頁」做分析
-        totalPageCount.incrementAndGet(); 
-
-        if (htmlContent == null || htmlContent.isEmpty()) {
-            logger.warn("Failed to fetch or process content for URL: {}, assigning score 0", url);
-            System.out.printf("Failed to fetch or process content for URL: {}, assigning score 0", url);
+        // 若深度 < 0 或已達最大頁數，直接給 0 分
+        if (depth < 0) {
+            logger.info("Stop processing page: {} (depth: {} or max pages reached).", url, depth);
             return new Page(title, url, 0, new HashMap<>());
         }
 
-        // 1. 分析關鍵字
+        // 記數 +1
+        totalPageCount.incrementAndGet();
+
+        if (htmlContent == null || htmlContent.isEmpty()) {
+            logger.warn("No content for URL: {}, score=0", url);
+            return new Page(title, url, 0, new HashMap<>());
+        }
+
+        // 1. 分析關鍵字出現次數
         Map<Keyword, Integer> keywordOccurrences = analyzeOccurrences(htmlContent, keywords);
-        // System.out.println("Keyword 出現次數: " + keywordOccurrences);
-        logger.debug("Keyword occurrences for page {}: {}", url, keywordOccurrences);
+        logger.debug("Keyword occurrences in {}: {}", url, keywordOccurrences);
 
         // 2. 計算分數
         Map<String, String> scoreDetails = new HashMap<>();
         int score = calculateScore(keywordOccurrences, scoreDetails);
-
         logger.info("Score for page {}: {}", url, score);
 
-        // 建立根 Page
+        // 建立當前頁物件
         Page currentPage = new Page(title, url, score, scoreDetails);
 
-        // 3. 若 depth > 0 才處理子頁面 (代表可以繼續往下抓)
+        // 3. 若 depth > 0 再去抓子頁 (簡單示例抓 1 個連結，可自行調整策略)
         if (depth > 0) {
             Document doc = Jsoup.parse(htmlContent);
             Elements links = doc.select("a[href]");
             int childrenCount = 0;
 
             for (Element link : links) {
-                if (childrenCount >= 1 || totalPageCount.get() >= MAX_TOTAL_PAGES) {
-                    break;
+                if (childrenCount >= 1) {
+                    break; // 只抓一個子連結
                 }
-
                 String childUrl = link.absUrl("href");
                 if (!isVisited(childUrl)) {
-                    logger.info("Fetching child page: {}", childUrl);
                     markVisited(childUrl);
                     childrenCount++;
 
+                    logger.debug("Fetching child page: {}", childUrl);
                     try {
                         String childHtmlContent = fetchHtmlContent(childUrl);
                         Page childPage = getPageStructure(childHtmlContent, keywords, link.text(), childUrl, depth - 1);
@@ -103,25 +120,30 @@ public class KeywordCounterEngine {
         return currentPage;
     }
 
+    /**
+     * 分析關鍵字在 htmlContent 裡的出現次數
+     */
     private Map<Keyword, Integer> analyzeOccurrences(String htmlContent, List<Keyword> keywords) {
         Map<Keyword, Integer> occurrences = new HashMap<>();
         Document doc = Jsoup.parse(htmlContent);
-        String textContent = doc.body() != null ? doc.body().text() : "";
-    
-        // System.out.println("Analyzing Text Content: " + textContent);
-    
+
+        // 取出 body text
+        String textContent = (doc.body() != null) ? doc.body().text() : "";
+
+        // 針對每個 keyword 做計算
         for (Keyword keyword : keywords) {
             String word = keyword.getWord();
-            // System.out.println("Checking keyword: " + word);
             int count = countOccurrences(textContent, word);
             if (count > 0) {
                 occurrences.put(keyword, count);
             }
-            // System.out.println("Count for keyword '" + word + "': " + count);
         }
         return occurrences;
-    }    
+    }
 
+    /**
+     * 根據關鍵字出現次數 * 權重 來計算總分，並記錄計算細節
+     */
     private int calculateScore(Map<Keyword, Integer> keywordOccurrences, Map<String, String> scoreDetails) {
         int totalScore = 0;
         for (Map.Entry<Keyword, Integer> entry : keywordOccurrences.entrySet()) {
@@ -130,36 +152,37 @@ public class KeywordCounterEngine {
             double weight = kw.getWeight();
             int score = (int) (occurrence * weight);
             totalScore += score;
-    
-            // 保存計算細節到 scoreDetails
+
+            // 把計算公式放到 scoreDetails
             scoreDetails.put(kw.getWord(), occurrence + " * " + weight + " = " + score);
         }
         return totalScore;
-    }    
+    }
 
+    /**
+     * 計算字串中關鍵字出現次數 (不使用單詞邊界)
+     */
     private int countOccurrences(String text, String word) {
-        // 直接匹配關鍵字，不使用單詞邊界
-        Pattern pattern = Pattern.compile(Pattern.quote(word));
+        Pattern pattern = Pattern.compile(Pattern.quote(word), Pattern.CASE_INSENSITIVE);
         Matcher matcher = pattern.matcher(text);
         int count = 0;
         while (matcher.find()) {
             count++;
         }
         return count;
-    }    
+    }
 
     /**
-     * 抓取網頁HTML內容，加入 User-Agent / Referer / 403 處理 + Cache
+     * 抓取網頁 (有簡單的 Cache 與 403/非200 處理)
      */
     private String fetchHtmlContent(String pageUrl) throws IOException {
         // 1. 檢查快取
         if (htmlCache.containsKey(pageUrl)) {
-            return htmlCache.get(pageUrl); // 直接回傳已抓好的HTML
+            return htmlCache.get(pageUrl);
         }
 
-        // 2. 協定檢查
+        // 2. 檢查協定
         if (!pageUrl.startsWith("http://") && !pageUrl.startsWith("https://")) {
-            // 無效連結，直接回 ""
             return "";
         }
 
@@ -167,40 +190,34 @@ public class KeywordCounterEngine {
         try {
             URL url = new URL(pageUrl);
             conn = (HttpURLConnection) url.openConnection();
-
-            // 模擬真實瀏覽器 UA
             conn.setRequestProperty("User-Agent",
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
                 "(KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36");
             conn.setRequestProperty("Referer", "https://www.google.com");
-
             conn.setConnectTimeout(2000);
             conn.setReadTimeout(2000);
 
             int responseCode = conn.getResponseCode();
-            // 若 403，直接跳過
-            if (responseCode == 403) {
-                return "";
-            }
-            if (responseCode != 200) {
+            if (responseCode == 403 || responseCode != 200) {
                 return "";
             }
 
             // 3. 讀取內容
             StringBuilder sb = new StringBuilder();
-            try (BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), "UTF-8"))) {
+            try (BufferedReader br = new BufferedReader(
+                    new InputStreamReader(conn.getInputStream(), "UTF-8"))) {
                 String line;
                 while ((line = br.readLine()) != null) {
                     sb.append(line).append("\n");
                 }
             }
 
-            // 4. 放入 Cache
+            // 4. 放進 Cache
             String htmlContent = sb.toString();
             htmlCache.put(pageUrl, htmlContent);
             return htmlContent;
         } catch (IOException e) {
-            // 失敗直接回 ""
+            logger.error("Error fetching page: {}", pageUrl, e);
             return "";
         } finally {
             if (conn != null) {
@@ -209,14 +226,23 @@ public class KeywordCounterEngine {
         }
     }
 
+    /**
+     * 檢查是否已訪問過該網址
+     */
     private boolean isVisited(String url) {
         return visitedUrls.contains(url);
     }
 
+    /**
+     * 標記網址已訪問
+     */
     private void markVisited(String url) {
         visitedUrls.add(url);
     }
 
+    /**
+     * 若要優雅關閉執行緒池，可在 Application 關閉前呼叫
+     */
     public void shutdown() {
         executorService.shutdown();
         try {
