@@ -39,6 +39,7 @@ public class FetchGoogle {
 
             // 解析響應 JSON
             Map<String, Object> responseMap = objectMapper.readValue(response.body().string(), Map.class);
+            System.out.println("responseMap: " + responseMap);
             return (List<String>) responseMap.get("keywords");
         }
     }

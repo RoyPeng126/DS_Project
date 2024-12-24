@@ -115,16 +115,17 @@ public class SearchController {
             // 第四步：依最終分數排序(高->低)
             rootPageResults.sort((r1, r2) -> Integer.compare(r2.getAggregatedScore(), r1.getAggregatedScore()));
 
-            System.out.println("Sorted Results:");
-            for (RootPageResult rpr : rootPageResults) {
-                System.out.println("Title: " + rpr.getTitle() + ", URL: " + rpr.getUrl() + ", Score: " + rpr.getAggregatedScore());
-                System.out.println("Score Details:");
-                for (Map.Entry<String, String> entry : rpr.getScoreDetails().entrySet()) {
-                    System.out.println("    Keyword: " + entry.getKey() + ", Calculation: " + entry.getValue());
-                }
-                System.out.println();
-            }
-            
+            // System.out.println("Sorted Results:");
+            // for (RootPageResult rpr : rootPageResults) {
+            //     System.out.println("Title: " + rpr.getTitle() + ", URL: " + rpr.getUrl() + ", Score: " + rpr.getAggregatedScore());
+            //     System.out.println("Score Details:");
+            //     for (Map.Entry<String, String> entry : rpr.getScoreDetails().entrySet()) {
+            //         System.out.println("    Keyword: " + entry.getKey() + ", Calculation: " + entry.getValue());
+            //     }
+            //     System.out.println();
+            // }
+
+            System.out.println("RELATED KEYWORDS: " + resultTexts);
             model.addAttribute("resultTexts", resultTexts);
             model.addAttribute("results", rootPageResults);
             model.addAttribute("query", combinedKeywords);

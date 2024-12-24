@@ -1,6 +1,5 @@
 from requests_html import HTMLSession
 from bs4 import BeautifulSoup
-import re
 
 def fetch_google_result_text(query):
     # URL encode query for Google search
@@ -15,8 +14,8 @@ def fetch_google_result_text(query):
     try:
         # Get the response
         response = session.get(url, headers=headers)
-        response.html.render(sleep=2)  # Render JavaScript content if needed
-        
+        # response.html.render(sleep=2)  # Render JavaScript content if needed
+
         # Parse the HTML content
         soup = BeautifulSoup(response.html.html, "html.parser")
         
@@ -42,7 +41,9 @@ def fetch_google_result_text(query):
         print(f"Error occurred: {e}")
         return []
 
-# Example usage
-query = "香腸 台北"
-result_list = fetch_google_result_text(query)
-print(result_list)
+
+if __name__ == "__main__":
+    # Example usage
+    query = "香腸 台北"
+    result_list = fetch_google_result_text(query)
+    print(result_list)

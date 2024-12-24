@@ -56,7 +56,7 @@ public class KeywordCounterEngine {
 
         // 1. 分析關鍵字
         Map<Keyword, Integer> keywordOccurrences = analyzeOccurrences(htmlContent, keywords);
-        System.out.println("Keyword 出現次數: " + keywordOccurrences);
+        // System.out.println("Keyword 出現次數: " + keywordOccurrences);
         logger.debug("Keyword occurrences for page {}: {}", url, keywordOccurrences);
 
         // 2. 計算分數
@@ -108,16 +108,16 @@ public class KeywordCounterEngine {
         Document doc = Jsoup.parse(htmlContent);
         String textContent = doc.body() != null ? doc.body().text() : "";
     
-        System.out.println("Analyzing Text Content: " + textContent);
+        // System.out.println("Analyzing Text Content: " + textContent);
     
         for (Keyword keyword : keywords) {
             String word = keyword.getWord();
-            System.out.println("Checking keyword: " + word);
+            // System.out.println("Checking keyword: " + word);
             int count = countOccurrences(textContent, word);
             if (count > 0) {
                 occurrences.put(keyword, count);
             }
-            System.out.println("Count for keyword '" + word + "': " + count);
+            // System.out.println("Count for keyword '" + word + "': " + count);
         }
         return occurrences;
     }    
