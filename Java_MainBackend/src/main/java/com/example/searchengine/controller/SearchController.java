@@ -53,6 +53,8 @@ public class SearchController {
 
             // 第二步：Google搜尋，取得前 50 筆結果
             GoogleQuery googleQuery = new GoogleQuery(combinedKeywordsgoo);
+
+            List<String> resultTexts = googleQuery.fetchGoogleResultText(combinedKeywordsgoo);
             Map<String, String> initialResults = googleQuery.query(); // title -> url
 
             // ===★ 新增：多執行緒平行抓取，並把 depth 設為 0★===
@@ -62,13 +64,28 @@ public class SearchController {
             // 逐筆提交抓網頁的任務
             for (Map.Entry<String, String> entry : initialResults.entrySet()) {
                 futures.add(executor.submit(() -> {
-                    String title = entry.getKey();
+                    String result = entry.getKey();
+                    String title = "";
+                    String snippet = "";
                     String pageUrl = entry.getValue();
+                    String delimiter = "DSPROJECT/x01";
+
+                    // 使用 split 方法分割字串
+                    String[] parts = result.split(delimiter);
+
+                    // 驗證分割後的結果
+                    if (parts.length == 2) {
+                        title = parts[0];
+                        snippet = parts[1];
+                    } else {
+                        System.out.println("格式不正確，無法分割字串");
+                        return new RootPageResult("", pageUrl, 0, "",new HashMap<>());
+                    }
 
                     // (1) 過濾 PDF/下載 連結
                     if (isDownloadLink(pageUrl)) {
                         System.out.println("isDownloadLink");
-                        return new RootPageResult(title, pageUrl, 0, new HashMap<>());
+                        return new RootPageResult(title, pageUrl, 0, snippet,new HashMap<>());
                     }
 
                     // (2) 抓網頁
@@ -76,14 +93,14 @@ public class SearchController {
                     if (htmlContent.isEmpty()) {
                         // 403 或其它失敗 => 分數=0
                         System.out.println("htmlContent");
-                        return new RootPageResult(title, pageUrl, 0, new HashMap<>());
+                        return new RootPageResult(title, pageUrl, 0, snippet, new HashMap<>());
                     }
 
                     // (3) depth=0，不再抓子頁
                     Page rootPage = keywordCounterEngine.getPageStructure(htmlContent, keywordList, title, pageUrl, 0);
                     int aggregatedScore = rootPage.getScore();
                     Map<String, String> scoreDetails = rootPage.getScoreDetails(); // 從 Page 取得分數細節
-                    return new RootPageResult(title, pageUrl, aggregatedScore, scoreDetails);
+                    return new RootPageResult(title, pageUrl, aggregatedScore, snippet, scoreDetails);
                 }));
             }
 
@@ -98,12 +115,6 @@ public class SearchController {
             // 第四步：依最終分數排序(高->低)
             rootPageResults.sort((r1, r2) -> Integer.compare(r2.getAggregatedScore(), r1.getAggregatedScore()));
 
-            // 傳給前端
-            Map<String, String> sortedResults = new LinkedHashMap<>();
-            for (RootPageResult rpr : rootPageResults) {
-                sortedResults.put(rpr.getTitle(), rpr.getUrl());
-            }
-
             System.out.println("Sorted Results:");
             for (RootPageResult rpr : rootPageResults) {
                 System.out.println("Title: " + rpr.getTitle() + ", URL: " + rpr.getUrl() + ", Score: " + rpr.getAggregatedScore());
@@ -113,8 +124,9 @@ public class SearchController {
                 }
                 System.out.println();
             }
-
-            model.addAttribute("results", sortedResults);
+            
+            model.addAttribute("resultTexts", resultTexts);
+            model.addAttribute("results", rootPageResults);
             model.addAttribute("query", combinedKeywords);
 
         } catch (Exception e) {
@@ -192,12 +204,14 @@ public class SearchController {
         private String title;
         private String url;
         private int aggregatedScore;
+        private String snippet; // 新增的字段
         private Map<String, String> scoreDetails; // 用於記錄分數細節
     
-        public RootPageResult(String title, String url, int aggregatedScore, Map<String, String> scoreDetails) {
+        public RootPageResult(String title, String url, int aggregatedScore, String snippet, Map<String, String> scoreDetails) {
             this.title = title;
             this.url = url;
             this.aggregatedScore = aggregatedScore;
+            this.snippet = snippet; // 初始化 snippet
             this.scoreDetails = scoreDetails;
         }
     
@@ -212,6 +226,10 @@ public class SearchController {
     
         public int getAggregatedScore() {
             return aggregatedScore;
+        }
+
+        public String getSnippet() {
+            return snippet;
         }
     
         public Map<String, String> getScoreDetails() {

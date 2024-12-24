@@ -83,6 +83,28 @@
             padding: 10px;
             color: #721c24;
         }
+
+        .card {
+            margin-bottom: 10px;
+            border: none;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .card-title a:hover {
+            text-decoration: underline;
+        }
+
+        .card-text {
+            margin-top: 10px;
+        }
+
+        .badge-primary {
+            background-color: #007bff;
+            color: white;
+            margin-top: 10px;
+            padding: 5px 10px;
+            border-radius: 15px;
+        }
     </style>
 </head>
 
@@ -98,18 +120,38 @@
         </form>
         <hr>
         <div>
-            <h3 th:if="${query != null && query != ''}" th:text="'Search Results for: ' + ${query}">Search Results</h3>
-            <h3 th:unless="${query != null && query != ''}">歡迎輸入關鍵字搜尋～</h3>
+            <h3 th:if="${query != null && query != ''}" th:text="'Query: ' + ${query}">Search Results</h3>
+            <h3 th:unless="${query != null && query != ''}">Search for night market delicacies~</h3>
             <ul class="list-group">
                 <th:block th:if="${results != null}">
-                    <li class="list-group-item" th:each="result : ${results.entrySet()}">
-                        <a th:href="${result.value}" th:text="${result.key}" target="_blank"></a>
+                    <li class="list-group-item" th:each="result : ${results}">
+                        <div class="card">
+                            <div class="card-body">
+                                <!-- Title with hyperlink -->
+                                <h5 class="card-title">
+                                    <a th:href="${result.url}" th:text="${result.title}" target="_blank" style="text-decoration: none; color: #007bff;"></a>
+                                </h5>
+                                <!-- Snippet -->
+                                <p class="card-text" th:text="${result.snippet}" style="font-size: 14px; color: #555;"></p>
+                                <!-- Score -->
+                                <span class="badge badge-primary" style="font-size: 12px;">Score: <span th:text="${result.aggregatedScore}"></span></span>
+                            </div>
+                        </div>
                     </li>
                 </th:block>
                 <th:block th:if="${error != null}">
                     <div class="alert alert-danger" th:text="${error}"></div>
                 </th:block>
             </ul>
+            <th:block th:if="${resultTexts != null}">
+                <div class="mt-4 p-3" style="background-color: rgba(255, 255, 255, 0.8); border-radius: 5px;">
+                    <h4>相關關鍵字</h4>
+                    <ul>
+                        <li th:each="text : ${resultTexts}" th:text="${text}"
+                            style="font-size: 14px; color: #555; margin-bottom: 5px;"></li>
+                    </ul>
+                </div>
+            </th:block>
         </div>
     </div>
 </body>

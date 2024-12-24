@@ -1,10 +1,12 @@
 package com.example.searchengine.service;
 
-import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.*;
 import java.util.*;
+
+import com.example.searchengine.model.FetchGoogle;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -82,6 +84,24 @@ public class GoogleQuery {
     }
 
     /**
+     * 使用 HtmlUnit 進行實際的 Google Search，並解析載入後的 HTML。
+     * @param query 關鍵字
+     * @return 回傳在 class="y6Uyqe" 區塊內所有文字，逐行裝在 List<String>
+     */
+    public List<String> fetchGoogleResultText(String query) {
+        try {
+            // 建立 FetchGoogle 物件 (若您有使用 Spring 管理，可改用 @Autowired 來注入)
+            FetchGoogle fetchGoogle = new FetchGoogle();
+            // 呼叫 fetchGoogle.getrelate(...) 並回傳取得的 List<String>
+            return fetchGoogle.getrelate(query);
+        } catch (IOException e) {
+            // 可視需求做更進一步處理或丟出自訂例外
+            e.printStackTrace();
+            return Collections.emptyList();
+        }
+    }
+
+    /**
      * 對外提供的搜尋方法：回傳 Map<String, String>，對應 title -> url
      * 最多抓取 50 筆(5 頁)結果。
      */
@@ -109,9 +129,11 @@ public class GoogleQuery {
                 JsonObject item = items.get(i).getAsJsonObject();
                 String title = item.has("title") ? item.get("title").getAsString() : "";
                 String link = item.has("link") ? item.get("link").getAsString() : "";
+                String snippet = item.has("snippet") ? item.get("snippet").getAsString() : "";
+                String combine = title + "DSPROJECT/x01" + snippet;
 
                 if (!title.isEmpty() && !link.isEmpty()) {
-                    resultMap.put(title, link);
+                    resultMap.put(combine, link);
                     totalFetched++;
                 }
 
