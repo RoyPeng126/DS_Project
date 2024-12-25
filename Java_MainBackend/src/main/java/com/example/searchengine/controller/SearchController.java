@@ -7,6 +7,8 @@ import com.example.searchengine.model.KeywordExtractionResult;
 import com.example.searchengine.model.Page;
 import com.example.searchengine.service.GoogleQuery;
 
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -135,6 +137,102 @@ public class SearchController {
             model.addAttribute("error", "Error fetching results");
         }
         return "index";
+    }
+
+    @GetMapping("/api/search")
+    public ResponseEntity<?> apiSearch(@RequestParam String query) {
+        try {
+            // 第一步：關鍵字處理 (與原本相同)
+            KeywordExtractionResult extractionResult = keywordExtractionEngine.extractKeywords(query);
+            List<Keyword> keywordList = extractionResult.getKeywordList();
+            String combinedKeywords = extractionResult.getCombinedKeywords();
+            String combinedKeywordsgoo = combinedKeywords + "夜市 美食";
+
+            // 第二步：Google搜尋，取得前 50 筆結果
+            GoogleQuery googleQuery = new GoogleQuery(combinedKeywordsgoo);
+
+            List<String> resultTexts = googleQuery.fetchGoogleResultText(combinedKeywordsgoo);
+            Map<String, String> initialResults = googleQuery.query(); // title -> url
+
+            // ===★ 新增：多執行緒平行抓取，並把 depth 設為 0★===
+            ExecutorService executor = Executors.newFixedThreadPool(10);
+            List<Future<RootPageResult>> futures = new ArrayList<>();
+
+            // 逐筆提交抓網頁的任務
+            for (Map.Entry<String, String> entry : initialResults.entrySet()) {
+                futures.add(executor.submit(() -> {
+                    String result = entry.getKey();
+                    String title = "";
+                    String snippet = "";
+                    String pageUrl = entry.getValue();
+                    String delimiter = "DSPROJECT/x01";
+
+                    // 使用 split 方法分割字串
+                    String[] parts = result.split(delimiter);
+
+                    // 驗證分割後的結果
+                    if (parts.length == 2) {
+                        title = parts[0];
+                        snippet = parts[1];
+                    } else {
+                        System.out.println("格式不正確，無法分割字串");
+                        return new RootPageResult("", pageUrl, 0, "",new HashMap<>());
+                    }
+
+                    // (1) 過濾 PDF/下載 連結
+                    if (isDownloadLink(pageUrl)) {
+                        System.out.println("isDownloadLink");
+                        return new RootPageResult(title, pageUrl, 0, snippet,new HashMap<>());
+                    }
+
+                    // (2) 抓網頁
+                    String htmlContent = fetchHtmlContent(pageUrl); 
+                    if (htmlContent.isEmpty()) {
+                        // 403 或其它失敗 => 分數=0
+                        System.out.println("htmlContent");
+                        return new RootPageResult(title, pageUrl, 0, snippet, new HashMap<>());
+                    }
+
+                    // (3) depth=0，不再抓子頁
+                    Page rootPage = keywordCounterEngine.getPageStructure(htmlContent, keywordList, title, pageUrl, 0);
+                    int aggregatedScore = rootPage.getScore();
+                    Map<String, String> scoreDetails = rootPage.getScoreDetails(); // 從 Page 取得分數細節
+                    return new RootPageResult(title, pageUrl, aggregatedScore, snippet, scoreDetails);
+                }));
+            }
+
+            // 等所有任務完成
+            executor.shutdown();
+            List<RootPageResult> rootPageResults = new ArrayList<>();
+            for (Future<RootPageResult> f : futures) {
+                RootPageResult rpr = f.get(); // block 直到該任務跑完
+                rootPageResults.add(rpr);
+            }
+
+            // 第四步：依最終分數排序(高->低)
+            rootPageResults.sort((r1, r2) -> Integer.compare(r2.getAggregatedScore(), r1.getAggregatedScore()));
+
+            // System.out.println("Sorted Results:");
+            // for (RootPageResult rpr : rootPageResults) {
+            //     System.out.println("Title: " + rpr.getTitle() + ", URL: " + rpr.getUrl() + ", Score: " + rpr.getAggregatedScore());
+            //     System.out.println("Score Details:");
+            //     for (Map.Entry<String, String> entry : rpr.getScoreDetails().entrySet()) {
+            //         System.out.println("    Keyword: " + entry.getKey() + ", Calculation: " + entry.getValue());
+            //     }
+            //     System.out.println();
+            // }
+
+            // 返回 JSON 格式的結果
+            Map<String, Object> response = new HashMap<>();
+            response.put("resultTexts", resultTexts);
+            response.put("query", combinedKeywords);
+            response.put("results", rootPageResults);
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error fetching results");
+        }
     }
 
     /**
