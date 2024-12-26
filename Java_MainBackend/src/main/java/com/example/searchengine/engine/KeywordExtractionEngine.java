@@ -7,6 +7,8 @@ import com.example.searchengine.model.CKIPTransformer;
 import com.example.searchengine.service.GoogleTranslateService;
 import com.example.searchengine.model.ClassificationModel.ClassificationResult;
 
+import java.util.stream.Stream;
+
 import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -48,11 +50,15 @@ public class KeywordExtractionEngine {
 
         // 2. 檢查輸入是否包含空格 -> 決定要用自己簡單切詞 or CKIP
         List<String> tokens;
-        if (userInput.contains(" ")) {
+        if (userInput.contains(" ") || userInput.length() <= 8) {
             tokens = tokenize(userInput);
         } else {
             tokens = ckipTransformer.tokenize(userInput);
         }
+        
+        List<String> additionalKeywords = Arrays.asList("夜市", "美食", "店家");
+        tokens = Stream.concat(tokens.stream(), additionalKeywords.stream())
+                    .collect(Collectors.toList());
 
         // 3. 將分詞結果進行分類與權重分配
         List<Keyword> keywords = tokens.stream()

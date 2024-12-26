@@ -51,12 +51,12 @@ public class SearchController {
             KeywordExtractionResult extractionResult = keywordExtractionEngine.extractKeywords(query);
             List<Keyword> keywordList = extractionResult.getKeywordList();
             String combinedKeywords = extractionResult.getCombinedKeywords();
-            String combinedKeywordsgoo = combinedKeywords + "夜市 美食";
+            // String combinedKeywordsgoo = combinedKeywords + "夜市 美食 店家";
 
             // 第二步：Google搜尋，取得前 50 筆結果
-            GoogleQuery googleQuery = new GoogleQuery(combinedKeywordsgoo);
+            GoogleQuery googleQuery = new GoogleQuery(combinedKeywords);
 
-            List<String> resultTexts = googleQuery.fetchGoogleResultText(combinedKeywordsgoo);
+            List<String> resultTexts = googleQuery.fetchGoogleResultText(combinedKeywords);
             Map<String, String> initialResults = googleQuery.query(); // title -> url
 
             // ===★ 新增：多執行緒平行抓取，並把 depth 設為 0★===
@@ -130,7 +130,7 @@ public class SearchController {
             System.out.println("RELATED KEYWORDS: " + resultTexts);
             model.addAttribute("resultTexts", resultTexts);
             model.addAttribute("results", rootPageResults);
-            model.addAttribute("query", combinedKeywords);
+            // model.addAttribute("query", combinedKeywords);
 
         } catch (Exception e) {
             e.printStackTrace();

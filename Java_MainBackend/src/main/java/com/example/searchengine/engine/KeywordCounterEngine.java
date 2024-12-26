@@ -89,6 +89,8 @@ public class KeywordCounterEngine {
         // 3. 若 depth > 0 再去抓子頁 (簡單示例抓 1 個連結，可自行調整策略)
         if (depth > 0) {
             Document doc = Jsoup.parse(htmlContent);
+            doc.setBaseUri(url); // 確保有 Base URI 設定
+
             Elements links = doc.select("a[href]");
             int childrenCount = 0;
 
@@ -96,12 +98,30 @@ public class KeywordCounterEngine {
                 if (childrenCount >= 1) {
                     break; // 只抓一個子連結
                 }
-                String childUrl = link.absUrl("href");
+
+                String childUrl = link.absUrl("href"); // 取得絕對 URL
+
+                // 打印調試訊息，確認抓到的 URL
+                System.out.println("Raw href: " + link.attr("href"));
+                System.out.println("Calculated absolute URL: " + childUrl);
+
+                if (childUrl.isEmpty()) {
+                    System.out.println("Empty childUrl for link: " + link.text());
+                    continue; // 跳過空的 URL
+                }
+
+                if (!childUrl.startsWith("http://") && !childUrl.startsWith("https://")) {
+                    System.out.println("Invalid URL (not HTTP/HTTPS): " + childUrl);
+                    continue; // 跳過非 HTTP/HTTPS 的連結
+                }
+
                 if (!isVisited(childUrl)) {
                     markVisited(childUrl);
                     childrenCount++;
 
+                    System.out.printf("Fetching child page: %s%n", childUrl);
                     logger.debug("Fetching child page: {}", childUrl);
+
                     try {
                         String childHtmlContent = fetchHtmlContent(childUrl);
                         Page childPage = getPageStructure(childHtmlContent, keywords, link.text(), childUrl, depth - 1);
