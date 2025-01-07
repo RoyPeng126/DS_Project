@@ -16,22 +16,58 @@ Snack Hunter: The Ultimate Taiwanese Night Market Food Finder
 
 [2024/12/26] Refactor the whole codebase (Frontend: APP, Web, Backend, Models, Docs)
 
-[2024/12/25] Update this README.md: `Source Code Structure` and `Project introduction`
-
 ## Source Code Structure
 
 ```
 .
-├── SearchEngineApplication.java
-├── controller
-│   └── SearchController.java
-├── engine
-│   ├── KeywordCounterEngine.java
-│   └── KeywordExtractionEngine.java
-├── model
-│   ├── Keyword.java
-│   ├── KeywordExtractionResult.java
-│   └── Page.java
-└── service
-    └── GoogleQuery.java
+├── DSproposal_Group9_final.pdf
+├── README.md
+├── IOSAPP_Source
+│   └── NightMarketSearch
+│       ├── ContentView.swift
+│       ├── Info.plist
+│       ├── NightMarketSearchApp.swift
+│       ├── SearchResult.swift
+│       └── SearchViewModel.swift
+├── Java_MainBackend
+│   ├── output.csv
+│   ├── pom.xml
+│   ├── mvnw
+│   ├── mvnw.cmd
+│   ├── src
+│   │   └── main
+│   │       ├── java
+│   │       │   └── com
+│   │       │       └── example
+│   │       │           └── searchengine
+│   │       │               ├── SearchEngineApplication.java
+│   │       │               ├── controller
+│   │       │               │   └── SearchController.java
+│   │       │               ├── engine
+│   │       │               │   ├── KeywordCounterEngine.java
+│   │       │               │   └── KeywordExtractionEngine.java
+│   │       │               ├── model
+│   │       │               │   ├── CKIPTransformer.java
+│   │       │               │   ├── ClassificationModel.java
+│   │       │               │   ├── FetchGoogle.java
+│   │       │               │   ├── Keyword.java
+│   │       │               │   ├── KeywordExtractionResult.java
+│   │       │               │   ├── Page.java
+│   │       │               │   └── VoyageReRanker.java
+│   │       │               └── service
+│   │       │                   ├── GoogleQuery.java
+│   │       │                   └── GoogleTranslateService.java
+│   │       └── resources
+│   │           ├── application.properties
+│   │           ├── static
+│   │           │   └── images
+│   │           │       ├── bg.jpg
+│   │           │       └── bg2.jpg
+│   │           └── templates
+│   │               └── index.html
+├── python_backend
+│   ├── fetch_google.py
+│   ├── flask_app.py
+│   └── test
+│       └── test_api_search.py
 ```
