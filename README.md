@@ -66,7 +66,7 @@ Snack Hunter: The Ultimate Taiwanese Night Market Food Finder
 ## Setup Environment
 To set up the development environment, follow these steps:
 
-- 請事先自己安裝好 python / pip / pyvenv / java / maven / springboot
+- Please install it yourself in advance: python / pip / pyvenv / java / maven / springboot
 
 1. git clone our repo:
     ```
