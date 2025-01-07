@@ -12,8 +12,9 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class FetchGoogle {
+    // Related Keywords Get
 
-    private static final String API_URL = "http://femhv.ddns.net:5000/fetch";
+    private static final String API_URL = "http://localhost:5000/fetch";
     private final OkHttpClient client = new OkHttpClient();
     private final ObjectMapper objectMapper = new ObjectMapper();
 

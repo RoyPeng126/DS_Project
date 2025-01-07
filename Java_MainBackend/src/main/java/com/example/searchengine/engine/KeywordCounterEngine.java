@@ -86,7 +86,7 @@ public class KeywordCounterEngine {
         // 建立當前頁物件
         Page currentPage = new Page(title, url, score, scoreDetails);
 
-        // 3. 若 depth > 0 再去抓子頁 (簡單示例抓 1 個連結，可自行調整策略)
+        // 3. 若 depth > 0 再去抓子頁 (為確保速度，限定抓取一個子連結，以維持使用者體驗)
         if (depth > 0) {
             Document doc = Jsoup.parse(htmlContent);
             doc.setBaseUri(url); // 確保有 Base URI 設定

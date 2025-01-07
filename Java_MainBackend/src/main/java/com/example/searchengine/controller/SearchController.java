@@ -44,6 +44,7 @@ public class SearchController {
         this.keywordCounterEngine = keywordCounterEngine;
     }
 
+    // API For Web
     @GetMapping("/search")
     public String search(@RequestParam String query, Model model) {
         try {
@@ -56,10 +57,13 @@ public class SearchController {
             // 第二步：Google搜尋，取得前 50 筆結果
             GoogleQuery googleQuery = new GoogleQuery(combinedKeywords);
 
+            // 取得 RELATED KEYWORDS (從 Google 網頁最底下的區域抓取)
             List<String> resultTexts = googleQuery.fetchGoogleResultText(combinedKeywords);
+
+            // 打 Google API 取得所有 Results
             Map<String, String> initialResults = googleQuery.query(); // title -> url
 
-            // ===★ 新增：多執行緒平行抓取，並把 depth 設為 0★===
+            // ===★ 多執行緒平行抓取 ★===
             ExecutorService executor = Executors.newFixedThreadPool(10);
             List<Future<RootPageResult>> futures = new ArrayList<>();
 
@@ -98,8 +102,8 @@ public class SearchController {
                         return new RootPageResult(title, pageUrl, 0, snippet, new HashMap<>());
                     }
 
-                    // (3) depth=0，不再抓子頁
-                    Page rootPage = keywordCounterEngine.getPageStructure(htmlContent, keywordList, title, pageUrl, 0);
+                    // (3) depth=1
+                    Page rootPage = keywordCounterEngine.getPageStructure(htmlContent, keywordList, title, pageUrl, 1);
                     int aggregatedScore = rootPage.getScore();
                     Map<String, String> scoreDetails = rootPage.getScoreDetails(); // 從 Page 取得分數細節
                     return new RootPageResult(title, pageUrl, aggregatedScore, snippet, scoreDetails);
@@ -139,6 +143,7 @@ public class SearchController {
         return "index";
     }
 
+    // API For IOS APP
     @GetMapping("/api/search")
     public ResponseEntity<?> apiSearch(@RequestParam String query) {
         try {
@@ -154,7 +159,7 @@ public class SearchController {
             List<String> resultTexts = googleQuery.fetchGoogleResultText(combinedKeywordsgoo);
             Map<String, String> initialResults = googleQuery.query(); // title -> url
 
-            // ===★ 新增：多執行緒平行抓取，並把 depth 設為 0★===
+            // ===★ 多執行緒平行抓取 ★===
             ExecutorService executor = Executors.newFixedThreadPool(10);
             List<Future<RootPageResult>> futures = new ArrayList<>();
 
@@ -193,8 +198,8 @@ public class SearchController {
                         return new RootPageResult(title, pageUrl, 0, snippet, new HashMap<>());
                     }
 
-                    // (3) depth=0，不再抓子頁
-                    Page rootPage = keywordCounterEngine.getPageStructure(htmlContent, keywordList, title, pageUrl, 0);
+                    // (3) depth=1
+                    Page rootPage = keywordCounterEngine.getPageStructure(htmlContent, keywordList, title, pageUrl, 1);
                     int aggregatedScore = rootPage.getScore();
                     Map<String, String> scoreDetails = rootPage.getScoreDetails(); // 從 Page 取得分數細節
                     return new RootPageResult(title, pageUrl, aggregatedScore, snippet, scoreDetails);

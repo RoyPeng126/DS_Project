@@ -36,7 +36,7 @@ public class VoyageReRanker {
     public VoyageReRanker() {
         keywordLists = new HashMap<>();
         initializeKeywordLists();
-        loadKeywordsFromCSV("output.csv", "Night Market Name");
+        loadKeywordsFromCSV("nightmarket_info.csv", "Night Market Name");
     }
 
     public Map<String, List<String>> getKeywordLists() {
@@ -76,7 +76,7 @@ public class VoyageReRanker {
      * 回傳「最佳匹配文字 + 分數」。
      */
     public BestMatchResponse getBestMatchWithScore(String input, List<String> candidates) {
-        String apiUrl = "http://femhv.ddns.net:5000/rerank";
+        String apiUrl = "http://localhost:5000/rerank";
         RestTemplate restTemplate = new RestTemplate();
     
         Map<String, Object> requestBody = new HashMap<>();
@@ -89,7 +89,7 @@ public class VoyageReRanker {
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
     
         try {
-            // 假設 Python 端回傳的 JSON 長這樣:
+            // e.g.
             // {
             //   "ranked_documents": [
             //     {"document": "臺中市", "score": 0.95},

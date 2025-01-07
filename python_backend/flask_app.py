@@ -5,19 +5,18 @@ import os
 import sys
 import voyageai
 
-from test_fetch import fetch_google_result_text
+from fetch_google import fetch_google_result_text
 
 # Initialize Flask app
 app = Flask(__name__)
 
-# Initialize CKIP drivers
-ws_driver = CkipWordSegmenter(model="albert-base")
-pos_driver = CkipPosTagger(model="albert-base")
+ws_driver = None
+pos_driver = None
 
-# Configure VoyageAI API key
-voyage_api_key = os.getenv('VOYAGEAI_API_KEY')
-if not voyage_api_key:
-    raise EnvironmentError("Environment variable 'VOYAGEAI_API_KEY' is not set.")
+def initialize_ckip_drivers():
+    global ws_driver, pos_driver
+    ws_driver = CkipWordSegmenter(model="albert-base")
+    pos_driver = CkipPosTagger(model="albert-base")
 
 def clean(sentence_ws, sentence_pos):
     short_sentence = []
@@ -102,4 +101,14 @@ def rerank():
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
+    initialize_ckip_drivers()
+
+    print(ws_driver)
+    print(pos_driver)
+
+    # Configure VoyageAI API key
+    voyage_api_key = os.getenv('VOYAGEAI_API_KEY')
+    if not voyage_api_key:
+        raise EnvironmentError("Environment variable 'VOYAGEAI_API_KEY' is not set.")
+
     app.run(host='0.0.0.0', port=5000, threaded=True)

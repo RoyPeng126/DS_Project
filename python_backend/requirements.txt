@@ -1,0 +1,9 @@
+numpy==1.26.4
+beautifulsoup4==4.12.3
+transformers==4.47.1
+ckip_transformers==0.3.4
+Flask==2.3.2
+Requests==2.32.3
+requests_html==0.10.0
+voyageai==0.3.2
+lxml_html_clean==0.4.1
