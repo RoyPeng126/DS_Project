@@ -10,6 +10,8 @@ Snack Hunter: The Ultimate Taiwanese Night Market Food Finder
 
 ## TODO
 
+[2025/01/07] Update this README.md: New section `Setup Environment`
+
 [2024/12/31] "抓子網頁"改成預設: 開啟 + 不只抓一個 child (全抓)
 
 [2024/12/26] Refactor the whole codebase (Frontend: APP, Web, Backend, Models, Docs)
