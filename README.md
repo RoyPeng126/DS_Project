@@ -8,7 +8,7 @@ Snack Hunter: The Ultimate Taiwanese Night Market Food Finder
 
 [Project Proposal PDF](./DSproposal_Group9_final.pdf)
 
-## Source Code Structure
+## Repo Structure
 
 ```
 .
