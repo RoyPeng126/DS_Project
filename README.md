@@ -134,7 +134,7 @@ To set up the development environment, follow these steps:
 
     - First, use a Mac computer to download Xcode.
     - Open the `NightMarketSearch` folder located in the `./IOSAPP_Source` directory of the repo in Xcode.
-    - Run the app (using an iOS 16 or later simulator).
+    - Run the app (using an iOS 18 or later simulator).
     - Alternatively, you can export the app directly to your personal iPhone:
         - In this case, ensure that the backend is fully deployed to a server beforehand, and modify the Swift code to replace `localhost` with the appropriate domain/IP address.
         - Additionally, you will need to set your iPhone to "trust" the app.
