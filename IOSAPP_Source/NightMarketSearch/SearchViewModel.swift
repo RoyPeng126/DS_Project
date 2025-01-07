@@ -25,21 +25,13 @@ class SearchViewModel: ObservableObject {
         errorMessage = nil
 
         // API URL
-        guard let url = URL(string: "http://localhost:8080/api/search") else {
+        guard let url = URL(string: "http://localhost:8080/api/search?query=\(query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")") else {
             errorMessage = "Invalid API URL."
             return
         }
 
-        // 設定 URLRequest 與參數
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
-        let body: [String: Any] = ["query": query]
-        request.httpBody = try? JSONSerialization.data(withJSONObject: body, options: [])
-
         // 發送請求
-        URLSession.shared.dataTaskPublisher(for: request)
+        URLSession.shared.dataTaskPublisher(for: url)
             .tryMap { data, response -> Data in
                 guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
                     throw URLError(.badServerResponse)
@@ -68,3 +60,4 @@ struct SearchResponse: Decodable {
     let resultTexts: [String]
     let results: [SearchResult]
 }
+
