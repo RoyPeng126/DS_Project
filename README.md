@@ -103,7 +103,9 @@ To set up the development environment, follow these steps:
     ```
 
 5. setup java environment:
-    ```
+    ```c
+    // open a new terminal
+    cd Java_MainBackend
     mvn clean install
     ```
 
