@@ -5,7 +5,7 @@ import os
 import sys
 import voyageai
 
-from test_fetch import fetch_google_result_text
+from fetch_google import fetch_google_result_text
 
 # Initialize Flask app
 app = Flask(__name__)
