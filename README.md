@@ -12,10 +12,6 @@ Snack Hunter: The Ultimate Taiwanese Night Market Food Finder
 
 [2025/01/07] Update this README.md: New section `Setup Environment`
 
-[2024/12/31] "抓子網頁"改成預設: 開啟 + 不只抓一個 child (全抓)
-
-[2024/12/26] Refactor the whole codebase (Frontend: APP, Web, Backend, Models, Docs)
-
 ## Source Code Structure
 
 ```
@@ -30,7 +26,7 @@ Snack Hunter: The Ultimate Taiwanese Night Market Food Finder
 │       ├── SearchResult.swift
 │       └── SearchViewModel.swift
 ├── Java_MainBackend
-│   ├── output.csv
+│   ├── nightmarket_info.csv
 │   ├── pom.xml
 │   ├── mvnw
 │   ├── mvnw.cmd
@@ -62,7 +58,6 @@ Snack Hunter: The Ultimate Taiwanese Night Market Food Finder
 │   │           ├── static
 │   │           │   └── images
 │   │           │       ├── bg.jpg
-│   │           │       └── bg2.jpg
 │   │           └── templates
 │   │               └── index.html
 ├── python_backend

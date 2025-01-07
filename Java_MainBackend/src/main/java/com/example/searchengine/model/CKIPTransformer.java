@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class CKIPTransformer {
 
-    private static final String API_URL = "http://femhv.ddns.net:5000/extract_keywords";
+    private static final String API_URL = "http://localhost:5000/extract_keywords";
     private final OkHttpClient client = new OkHttpClient();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
