@@ -109,15 +109,28 @@ To set up the development environment, follow these steps:
     mvn clean install
     ```
 
-6. run java service:
+6. setup environment variable in new terminal:
+    ```c
+    // windows
+    set VOYAGEAI_API_KEY=
+    set GOOGLE_CLOUD_API_KEY=
+    set GOOGLE_CLOUD_SEARCH_ENGINE_ID=
+
+    // linux / mac
+    export VOYAGEAI_API_KEY=
+    export GOOGLE_CLOUD_API_KEY=
+    export GOOGLE_CLOUD_SEARCH_ENGINE_ID=
+    ```
+
+7. run java service:
     ```
     mvn spring-boot:run
     ```
 
-7. Open Web Version:
+8. Open Web Version:
     - Launch browser: [http://localhost:8080](http://localhost:8080)
 
-8. iOS App Version:
+9. iOS App Version:
 
     - First, use a Mac computer to download Xcode.
     - Open the `NightMarketSearch` folder located in the `./IOSAPP_Source` directory of the repo in Xcode.
